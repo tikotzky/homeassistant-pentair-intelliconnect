@@ -1,0 +1,13 @@
+{
+  "domain": "pentair_pool",
+  "name": "Pentair Pool",
+  "codeowners": [
+    "@tikotzky"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/tikotzky/homeassistant-pentair-pool",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/tikotzky/homeassistant-pentair-pool/issues",
+  "version": "0.1.0"
+}
