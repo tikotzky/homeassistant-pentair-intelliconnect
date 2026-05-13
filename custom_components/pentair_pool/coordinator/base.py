@@ -43,9 +43,25 @@ class PentairPoolDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str,
     config_entry: PentairPoolConfigEntry
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize and prepare the WebSocket holder."""
+        """Initialize and prepare the WebSocket holders.
+
+        We run TWO subscriptions in parallel -- one per `active_screen`
+        value the Pentair cloud honors -- because each screen pushes a
+        different field set:
+
+          - `poolScreen`: dashboard fields incl. the heater setpoint (htd2)
+          - `product`:    device-detail fields incl. pump state (ra0/ra4),
+                          heater mode (htd1), cooldown raw (htd14), and the
+                          chlorine setpoint (icd1). The official app also
+                          PUTs `appuse=1` periodically from this screen, so
+                          this subscription mirrors that.
+
+        The union of the two covers every field this integration reads, so
+        the 60 s REST poll is only a defensive fallback for missed pushes.
+        """
         super().__init__(*args, **kwargs)
-        self._ws: PentairPoolWebSocket | None = None
+        self._ws_pool: PentairPoolWebSocket | None = None
+        self._ws_product: PentairPoolWebSocket | None = None
 
     @property
     def client(self) -> PentairPoolApiClient:
@@ -112,26 +128,42 @@ class PentairPoolDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str,
     # --------------------------------------------------------------- WebSocket
 
     async def _ensure_ws_started(self, device_ids: list[str]) -> None:
-        """Start the WS subscription on first poll, or restart with new device ids."""
+        """Start (or restart) both WS subscriptions to cover the union of fields."""
         if not device_ids:
             return
-        if self._ws is None:
-            session = async_get_clientsession(self.hass)
-            self._ws = PentairPoolWebSocket(session, self.client, device_ids, self._handle_ws_update)
-            self._ws.start()
-            return
-        # If the device id set changed across polls, restart the WS with the new set.
-        if set(self._ws._device_ids) != set(device_ids):  # noqa: SLF001
-            await self._ws.stop()
-            session = async_get_clientsession(self.hass)
-            self._ws = PentairPoolWebSocket(session, self.client, device_ids, self._handle_ws_update)
-            self._ws.start()
+        session = async_get_clientsession(self.hass)
+
+        def _make(active_screen: str, send_appuse: bool) -> PentairPoolWebSocket:
+            ws = PentairPoolWebSocket(
+                session,
+                self.client,
+                device_ids,
+                self._handle_ws_update,
+                active_screen=active_screen,
+                send_appuse=send_appuse,
+            )
+            ws.start()
+            return ws
+
+        if self._ws_pool is None:
+            self._ws_pool = _make("poolScreen", send_appuse=False)
+        elif set(self._ws_pool._device_ids) != set(device_ids):  # noqa: SLF001
+            await self._ws_pool.stop()
+            self._ws_pool = _make("poolScreen", send_appuse=False)
+
+        if self._ws_product is None:
+            self._ws_product = _make("product", send_appuse=True)
+        elif set(self._ws_product._device_ids) != set(device_ids):  # noqa: SLF001
+            await self._ws_product.stop()
+            self._ws_product = _make("product", send_appuse=True)
 
     async def async_shutdown(self) -> None:
-        """Stop the WS task on unload."""
-        if self._ws is not None:
-            await self._ws.stop()
-            self._ws = None
+        """Stop both WS tasks on unload."""
+        for attr in ("_ws_pool", "_ws_product"):
+            ws = getattr(self, attr)
+            if ws is not None:
+                await ws.stop()
+                setattr(self, attr, None)
         await super().async_shutdown()
 
     async def _handle_ws_update(self, device_id: str, fields: dict[str, dict]) -> None:

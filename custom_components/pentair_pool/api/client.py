@@ -387,9 +387,27 @@ class PentairPoolApiClient:
 
 
 class PentairPoolWebSocket:
-    """Long-lived WS subscriber that pumps device deltas into a callback."""
+    """Long-lived WS subscriber that pumps device deltas into a callback.
+
+    Each instance corresponds to ONE `active_screen` subscription. The Pentair
+    cloud's WebSocket protocol associates an `active_screen` with the
+    connection and tags every push with the matching `screen_type` -- and the
+    pushed field set differs per screen. We run two of these in parallel
+    (`poolScreen` for the dashboard's setpoint + telemetry fields, `product`
+    for the pump / heater mode / cooldown / chlorine-setpoint fields) so we
+    get real-time deltas for the union, instead of relying on the 60 s REST
+    poll to catch the half that `poolScreen` alone misses.
+
+    When `send_appuse=True`, the WS also periodically PUTs `{"appuse":"1"}`
+    per device while connected -- this mirrors the official app's behavior on
+    a device-detail screen and is what (likely) keeps the `product`-screen
+    pushes flowing on a long-lived connection.
+    """
 
     HEARTBEAT_INTERVAL = 1.0
+    # Interval for the appuse keepalive PUT, mirroring the cadence observed
+    # from the official Android app while a device-detail screen is open.
+    APPUSE_INTERVAL = 60.0
 
     def __init__(
         self,
@@ -397,12 +415,17 @@ class PentairPoolWebSocket:
         client: PentairPoolApiClient,
         device_ids: list[str],
         on_device_data: Callable[[str, dict[str, dict]], Awaitable[None]],
+        *,
+        active_screen: str = "poolScreen",
+        send_appuse: bool = False,
     ) -> None:
         """Hold refs and configure; nothing happens until start()."""
         self._session = session
         self._client = client
         self._device_ids = device_ids
         self._on_device_data = on_device_data
+        self._active_screen = active_screen
+        self._send_appuse = send_appuse
         self._task: asyncio.Task | None = None
         self._stop = asyncio.Event()
 
@@ -410,7 +433,9 @@ class PentairPoolWebSocket:
         """Start the background task if not already running."""
         if self._task is None or self._task.done():
             self._stop.clear()
-            self._task = asyncio.create_task(self._run_forever(), name="pentair-ws")
+            self._task = asyncio.create_task(
+                self._run_forever(), name=f"pentair-ws[{self._active_screen}]",
+            )
 
     async def stop(self) -> None:
         """Signal stop and wait for the background task to finish."""
@@ -426,25 +451,39 @@ class PentairPoolWebSocket:
             try:
                 await self._client.async_ensure_fresh()
                 async with self._session.ws_connect(self._client.ws_url(), heartbeat=30) as ws:
-                    _LOGGER.info("Pentair WS connected")
+                    _LOGGER.info("Pentair WS connected (screen=%s)", self._active_screen)
                     backoff = 1.0
                     await self._register(ws)
                     hb = asyncio.create_task(self._heartbeat_loop(ws))
+                    au = (
+                        asyncio.create_task(self._appuse_loop(ws))
+                        if self._send_appuse
+                        else None
+                    )
                     try:
                         async for msg in ws:
                             if msg.type == aiohttp.WSMsgType.TEXT:
                                 await self._handle_text(msg.data)
                             elif msg.type == aiohttp.WSMsgType.ERROR:
-                                _LOGGER.warning("Pentair WS error: %s", ws.exception())
+                                _LOGGER.warning(
+                                    "Pentair WS error (screen=%s): %s",
+                                    self._active_screen, ws.exception(),
+                                )
                                 break
                     finally:
                         hb.cancel()
                         with contextlib.suppress(asyncio.CancelledError):
                             await hb
+                        if au is not None:
+                            au.cancel()
+                            with contextlib.suppress(asyncio.CancelledError):
+                                await au
             except asyncio.CancelledError:
                 raise
             except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Pentair WS disconnected: %s", err)
+                _LOGGER.warning(
+                    "Pentair WS disconnected (screen=%s): %s", self._active_screen, err,
+                )
             if self._stop.is_set():
                 return
             await asyncio.sleep(backoff)
@@ -458,7 +497,7 @@ class PentairPoolWebSocket:
                         "action": "registerEvent",
                         "body": {
                             "device_ids": did,
-                            "active_screen": "poolScreen",
+                            "active_screen": self._active_screen,
                             "token": self._client.access_token,
                         },
                     },
@@ -472,6 +511,28 @@ class PentairPoolWebSocket:
             except ConnectionResetError:
                 return
             await asyncio.sleep(self.HEARTBEAT_INTERVAL)
+
+    async def _appuse_loop(self, ws: aiohttp.ClientWebSocketResponse) -> None:
+        """Mirror the app's `appuse=1` presence ping while the WS is alive.
+
+        Sent only on the `product`-screen subscription, since that's the
+        screen where the captured app traffic emits it. `appuse` is a
+        no-op as far as device state is concerned (no relay or valve
+        responds to it); its purpose appears to be telling the cloud the
+        client is actively viewing a device so high-rate pushes keep
+        flowing. Failures are logged at debug -- losing one keepalive
+        round is harmless.
+        """
+        # Stagger the first send slightly so it doesn't collide with the
+        # registerEvent ack-and-snapshot burst right after connect.
+        await asyncio.sleep(5.0)
+        while not ws.closed:
+            for did in self._device_ids:
+                try:
+                    await self._client.async_set_fields(did, {"appuse": "1"})
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.debug("appuse keepalive PUT failed for %s: %s", did, err)
+            await asyncio.sleep(self.APPUSE_INTERVAL)
 
     async def _handle_text(self, text: str) -> None:
         try:
