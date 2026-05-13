@@ -1,8 +1,6 @@
-<p align="center">
-  <img src="icons/logo.png" alt="Pentair IntelliConnect" width="200" />
-</p>
-
 # Pentair IntelliConnect
+
+<img src="icons/logo.png" alt="Pentair IntelliConnect" width="200" />
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]

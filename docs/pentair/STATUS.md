@@ -116,7 +116,7 @@ The captured-traffic archives (mitmproxy `.mitm` files, WS-frame JSONL) and Frid
 
 ### Three-layer flow
 
-```
+```text
    HA UI / automation
         │
         ▼
@@ -196,7 +196,7 @@ For one user with HA + the Pentair-side TZ matching (which is the normal case �
 
 Pentair's API Gateway expects a non-standard signed-headers list:
 
-```
+```text
 SignedHeaders=host;iseuropeanuser;x-amz-date;x-amz-id-token;x-amz-security-token;x-pha-apptype
 ```
 
@@ -212,7 +212,7 @@ SignedHeaders=host;iseuropeanuser;x-amz-date;x-amz-id-token;x-amz-security-token
 
 ## 5. File map
 
-```
+```text
 hacs-pentair-pool/
 ├── custom_components/pentair_pool/
 │   ├── __init__.py                            entry setup/unload
@@ -289,7 +289,7 @@ hacs-pentair-pool/
 
 Lives in the sibling `work/` directory:
 
-```
+```text
 work/
 ├── docs/
 │   ├── REPRODUCE.md                end-to-end: stock APK → live mitmproxy capture
