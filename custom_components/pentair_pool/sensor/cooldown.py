@@ -64,6 +64,7 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
         self._baseline: int | None = None
         self._baseline_at: float = 0.0
         self._unsub_tick = None
+        self._refresh_requested_at: float | None = None
 
     # ------------------------------------------------------------------ life
 
@@ -92,8 +93,22 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
 
     @callback
     def _on_tick(self, _now: dt.datetime) -> None:
-        """Re-render every second while still counting down."""
-        if self._baseline is not None and self._remaining() > 0:
+        """Re-render every second; on transition to 0, kick a coordinator
+        refresh so the rest of the entities pick up the post-cooldown state
+        (pump ra4=0, htd1 transition) without waiting for the 60 s poll."""
+        if self._baseline is None:
+            return
+        remaining = self._remaining()
+        if remaining > 0:
+            self.async_write_ha_state()
+            return
+        # remaining == 0: nudge a REST poll once per cooldown so HA picks up
+        # fresh ra4 / htd1 promptly. Throttle to avoid hammering the cloud
+        # if the sensor re-fires.
+        now = time.monotonic()
+        if self._refresh_requested_at is None or now - self._refresh_requested_at > 30:
+            self._refresh_requested_at = now
+            self.hass.async_create_task(self.coordinator.async_request_refresh())
             self.async_write_ha_state()
 
     # ---------------------------------------------------------------- state

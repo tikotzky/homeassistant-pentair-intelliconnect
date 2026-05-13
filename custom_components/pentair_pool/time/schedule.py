@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from custom_components.pentair_pool.const import FIELD_RA1, FIELD_RA2
 from custom_components.pentair_pool.entity import PentairPoolEntity
 from homeassistant.components.time import TimeEntity, TimeEntityDescription
+from homeassistant.const import EntityCategory
 from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
@@ -93,6 +94,7 @@ class PentairPoolScheduleStart(_ScheduleTimeBase):
                 key="schedule_start",
                 translation_key="schedule_start",
                 icon="mdi:clock-start",
+                entity_category=EntityCategory.CONFIG,
                 has_entity_name=True,
             ),
         )
@@ -112,6 +114,7 @@ class PentairPoolScheduleEnd(_ScheduleTimeBase):
                 key="schedule_end",
                 translation_key="schedule_end",
                 icon="mdi:clock-end",
+                entity_category=EntityCategory.CONFIG,
                 has_entity_name=True,
             ),
         )
