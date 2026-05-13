@@ -11,265 +11,74 @@
 [![hacs][hacsbadge]][hacs]
 ![Project Maintenance][maintenance-shield]
 
-<!--
-Uncomment and customize these badges if you want to use them:
+A Home Assistant custom integration for **Pentair IntelliConnect** pool controllers, communicating with the Pentair Cloud over HTTPS + WebSocket. It exposes the filter pump, pool heater, IntelliChlor salt cell, and the daily schedule as native Home Assistant entities.
 
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
-[![Discord][discord-shield]][discord]
--->
+The integration is reverse-engineered from the official Pentair Home mobile app; there is no public Pentair API. It authenticates against the same AWS Cognito user pool as the app and subscribes to the same real-time WebSocket, so state changes from the wall panel or the official app show up in Home Assistant within a second.
 
-**✨ Develop in the cloud:** Want to contribute or customize this integration? Open it directly in GitHub Codespaces - no local setup required!
+## Platforms and entities
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tikotzky/homeassistant-pentair-pool?quickstart=1)
+The integration is configured per Pentair account and surfaces one Home Assistant device per IntelliConnect controller on that account. Entities are only created if the controller actually reports the underlying field, so accessories you don't own (for example, a salt cell on a chlorine-tab pool) won't produce orphan entities.
 
-## ✨ Features
+| Platform        | Entities                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `binary_sensor` | **Online** (connectivity), **Alarm** (problem flag), **Filter pump running** (true while Relay 1 draws power)                                                                                     |
+| `climate`       | **Heater** — HVAC entity wrapping the pool heater. `heat` / `off` modes, setpoint in °F, `current_temperature` from the water-temp probe, `hvac_action` reports `heating` / `idle` / `off`        |
+| `number`        | **Chlorine output** — IntelliChlor salt-cell output setpoint (0–100 %, slider)                                                                                                                    |
+| `sensor`        | **Water temperature**, **Air temperature**, **Heater mode** (Off / Auto idle / Heating / …), **Heater cooldown** (live 1 Hz countdown), **Filter pump power** (W)                                 |
+| `sensor` (salt) | **Chlorine actual** (%), **Salt** (ppm), **Salt cell temperature**, **Salt cell hours**, **Boost remaining** (s), **Salt cell model**, **Salt cell firmware**                                     |
+| `switch`        | **Filter pump** (manual override, preserves the schedule bit), **Daily schedule** (enable/disable the recurring schedule, preserves the pump on/off bit)                                          |
+| `time`          | **Daily schedule start**, **Daily schedule stop** (stored as UTC seconds-of-day on the controller, displayed in your Home Assistant timezone)                                                     |
 
-- **Easy Setup**: Simple configuration through the UI - no YAML required
-- **Air Quality Monitoring**: Track AQI and PM2.5 levels in real-time
-- **Filter Management**: Monitor filter life and get replacement alerts
-- **Smart Control**: Adjust fan speed, target humidity, and operating modes
-- **Child Lock**: Safety feature to prevent accidental changes
-- **Diagnostic Info**: View filter life, runtime hours, and device statistics
-- **Reconfigurable**: Change credentials anytime without removing the integration
-- **Options Flow**: Adjust settings like update interval after setup
-- **Custom Services**: Advanced control with built-in service calls
+### Notable behaviors
 
-**This integration will set up the following platforms.**
+- **Filter pump switch `is_on` follows reality, not intent.** It reads ON whenever the pump is actually circulating water — manual override, scheduled run, or heater cooldown extending the run — matching what the Pentair app shows. When you toggle the switch, an optimistic state is held until the controller's reported wattage agrees. Tap OFF during heater cooldown and the switch stays OFF for the whole cooldown window; the pump physically stops a few minutes later when the firmware releases the relay.
+- **Heater cooldown sensor ticks every second.** The Pentair Cloud only pushes the cooldown counter every 10–30 s; the entity re-anchors on each push and ticks locally in between so dashboards see a smooth countdown. It snaps to 0 the moment the pump reports 0 W.
+- **Schedule times are timezone-aware.** Writes always go out as UTC seconds-of-day (what the firmware expects) using Home Assistant's configured timezone for the conversion.
 
-| Platform        | Description                                              |
-| --------------- | -------------------------------------------------------- |
-| `sensor`        | Air quality index (AQI), PM2.5, filter life, and runtime |
-| `binary_sensor` | API connection status and filter replacement alert       |
-| `switch`        | Child lock and LED display controls                      |
-| `select`        | Fan speed selection (Low/Medium/High/Auto)               |
-| `number`        | Target humidity setting (30-80%)                         |
-| `button`        | Reset filter timer after replacement                     |
-| `fan`           | Air purifier fan control with speed settings             |
+## Service actions
 
-> [!TIP]
-> **Interactive Demo:** The entities are interconnected for demonstration.
-> Press the **Reset Filter Timer** button to see **Filter Life Remaining** update to 100%.
-> Changing the **Air Purifier** fan speed syncs the **Fan Speed** select, and vice versa.
+| Service                  | Description                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `pentair_pool.reload_data` | Forces an immediate REST poll of the Pentair Cloud for every configured account. Useful after changing settings at the panel. |
 
-## 🚀 Quick Start
+The WebSocket push is the primary update path; a 60 s REST fallback poll runs in the background to catch any missed pushes.
 
-### Step 1: Install the Integration
+## Installation
 
-**Prerequisites:** This integration requires [HACS](https://hacs.xyz/) (Home Assistant Community Store) to be installed.
+### HACS (recommended)
 
-Click the button below to open the integration directly in HACS:
+This integration requires [HACS](https://hacs.xyz/).
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jpawlowski&repository=homeassistant-pentair-pool&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tikotzky&repository=hacs-pentair-pool&category=integration)
 
-Then:
-
-1. Click "Download" to install the integration
-2. **Restart Home Assistant** (required after installation)
-
-> [!NOTE]
-> The My Home Assistant redirect will first take you to a landing page. Click the button there to open your Home Assistant instance.
+1. Click "Download" in HACS to install the integration
+2. Restart Home Assistant
 
 <details>
-<summary><strong>Manual Installation (Advanced)</strong></summary>
+<summary><strong>Manual install</strong></summary>
 
-If you prefer not to use HACS:
-
-1. Download the `custom_components/pentair_pool/` folder from this repository
-2. Copy it to your Home Assistant's `custom_components/` directory
-3. Restart Home Assistant
+1. Copy `custom_components/pentair_pool/` from this repository into your Home Assistant `custom_components/` directory
+2. Restart Home Assistant
 
 </details>
 
-### Step 2: Add and Configure the Integration
-
-**Important:** You must have installed the integration first (see Step 1) and restarted Home Assistant!
-
-#### Option 1: One-Click Setup (Quick)
-
-Click the button below to open the configuration dialog:
+### Configure
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=pentair_pool)
 
-Follow the setup wizard:
+Or: **Settings → Devices & Services → Add Integration → "Pentair IntelliConnect"**.
 
-1. Enter your username
-2. Enter your password
-3. Click Submit
+You will be prompted for the **username** (email) and **password** of your Pentair Home / IntelliConnect account — the same credentials you use in the mobile app. The integration verifies them against AWS Cognito and stores the resulting tokens; tokens are refreshed automatically before they expire.
 
-That's it! The integration will start loading your data.
+#### Reauthenticate / change credentials
 
-#### Option 2: Manual Configuration
-
-1. Go to **Settings** → **Devices & Services**
-2. Click **"+ Add Integration"**
-3. Search for "Pentair IntelliConnect"
-4. Follow the same setup steps as Option 1
-
-### Step 3: Adjust Settings (Optional)
-
-After setup, you can adjust options:
-
-1. Go to **Settings** → **Devices & Services**
-2. Find **Pentair IntelliConnect**
-3. Click **Configure** to adjust:
-   - Update interval (how often to refresh data)
-   - Enable debug logging
-
-You can also **Reconfigure** your credentials anytime without removing the integration.
-
-### Step 4: Start Using!
-
-The integration creates several entities for your air purifier:
-
-- **Sensors**: Air quality index, PM2.5 levels, filter life remaining, total runtime
-- **Binary Sensors**: API connection status, filter replacement alert
-- **Switches**: Child lock, LED display control
-- **Select**: Fan speed (Low/Medium/High/Auto)
-- **Number**: Target humidity (30-80%)
-- **Button**: Reset filter timer
-- **Fan**: Air purifier fan control
-
-Find all entities in **Settings** → **Devices & Services** → **Pentair IntelliConnect** → click on the device.
-
-## Available Entities
-
-### Sensors
-
-- **Air Quality Index (AQI)**: Real-time air quality measurement (0-500 scale)
-  - Includes air quality category (Good/Moderate/Unhealthy/etc.)
-  - Health recommendations based on current AQI
-- **PM2.5**: Fine particulate matter concentration in µg/m³
-- **Filter Life Remaining** (Diagnostic): Shows remaining filter life as percentage
-- **Total Runtime** (Diagnostic): Total operating hours of the device
-
-### Binary Sensors
-
-- **API Connection**: Shows whether the connection to the API is active
-  - On: Connected and receiving data
-  - Off: Connection lost or authentication failed
-  - Shows update interval and API endpoint information
-- **Filter Replacement Needed**: Alerts when filter needs replacement
-  - Shows estimated days remaining
-  - Turns on when filter life is low
-
-### Switches
-
-- **Child Lock**: Prevents accidental button presses on the device
-  - Icon changes based on state (locked/unlocked)
-- **LED Display**: Enable/disable the LED display
-  - Disabled by default - enable in entity settings if needed
-
-### Select
-
-- **Fan Speed**: Choose from Low, Medium, High, or Auto
-  - Icon changes dynamically based on selected speed
-  - Auto mode adjusts speed based on air quality
-  - Syncs bidirectionally with the Air Purifier fan entity
-
-### Number
-
-- **Target Humidity**: Set desired humidity level (30-80%)
-  - Adjustable in 5% increments
-  - Displayed as a slider in the UI
-
-### Button
-
-- **Reset Filter Timer**: Reset the filter life to 100%
-  - Press to reset after replacing the filter
-  - Instantly updates the Filter Life Remaining sensor
-
-### Fan
-
-- **Air Purifier**: Control the air purifier fan speed and power
-  - Three speed levels: Low, Medium, High
-  - Syncs bidirectionally with the Fan Speed select entity
-  - Turn on/off functionality
-
-## Custom Services
-
-The integration provides services for advanced automation:
-
-### `pentair_pool.example_action`
-
-Perform a custom action (customize this for your needs).
-
-**Example:**
-
-```yaml
-service: pentair_pool.example_action
-data:
-  # Add your parameters here
-```
-
-### `pentair_pool.reload_data`
-
-Manually refresh data from the API without waiting for the update interval.
-
-**Example:**
-
-```yaml
-service: pentair_pool.reload_data
-```
-
-Use these services in automations or scripts for more control.
-
-## Configuration Options
-
-### During Setup
-
-| Name     | Required | Description           |
-| -------- | -------- | --------------------- |
-| Username | Yes      | Your account username |
-| Password | Yes      | Your account password |
-
-### After Setup (Options)
-
-You can change these anytime by clicking **Configure**:
-
-| Name             | Default | Description                |
-| ---------------- | ------- | -------------------------- |
-| Update Interval  | 1 hour  | How often to refresh data  |
-| Enable Debugging | Off     | Enable extra debug logging |
+If your password changes, Home Assistant will automatically prompt you to reauthenticate. You can also update credentials at any time via **Settings → Devices & Services → Pentair IntelliConnect → ⋮ → Reconfigure**.
 
 ## Troubleshooting
 
-### Authentication Issues
+### Debug logging
 
-#### Reauthentication
-
-If your credentials expire or change, Home Assistant will automatically prompt you to reauthenticate:
-
-1. Go to **Settings** → **Devices & Services**
-2. Look for **"Action Required"** or **"Configuration Required"** message on the integration
-3. Click **"Reconfigure"** or follow the prompt
-4. Enter your updated credentials
-5. Click Submit
-
-The integration will automatically resume normal operation with the new credentials.
-
-#### Manual Credential Update
-
-You can also update credentials at any time without waiting for an error:
-
-1. Go to **Settings** → **Devices & Services**
-2. Find **Pentair IntelliConnect**
-3. Click the **3 dots menu** → **Reconfigure**
-4. Enter new username/password
-5. Click Submit
-
-#### Connection Status
-
-Monitor your connection status with the **API Connection** binary sensor:
-
-- **On** (Connected): Integration is receiving data normally
-- **Off** (Disconnected): Connection lost or authentication failed
-  - Check the binary sensor attributes for diagnostic information
-  - Verify credentials if authentication failed
-  - Check network connectivity
-
-### Enable Debug Logging
-
-To enable debug logging for this integration, add the following to your `configuration.yaml`:
+Add to `configuration.yaml` and restart Home Assistant:
 
 ```yaml
 logger:
@@ -278,144 +87,65 @@ logger:
     custom_components.pentair_pool: debug
 ```
 
-### Common Issues
+### "Pump is on but I didn't tell it to"
 
-#### Authentication Errors
+Check the **Daily schedule** switch and the **Daily schedule start / stop** times. The schedule fires every day at those times regardless of the **Filter pump** switch state. The **Filter pump running** binary sensor reports the physical truth (Relay 1 power), which is the source for whether the pump is actually circulating water.
 
-If you receive authentication errors:
+### Heater shows "Idle" but I set it to Heat
 
-1. Verify your username and password are correct
-2. Check that your account has the necessary permissions
-3. Wait for the automatic reauthentication prompt, or manually reconfigure
-4. Check the API Connection binary sensor for status
+The Pentair heater has a two-step state machine: writing `heat` puts the firmware into "Auto idle" (`htd1 = 1`), and the firmware itself promotes that to "Heating" (`htd1 = 3`) once both conditions are met — water below setpoint **and** the filter pump is providing flow. The HVAC action will read `idle` until flow is available.
 
-#### Device Not Responding
+## Compatibility
 
-If your device is not responding:
+- Tested against IntelliConnect controllers (PIF0 device type) on US accounts (Cognito `us-west-2`)
+- Heater, IntelliChlor IC-40 salt cell, and Daily Schedule are wired up; pumps controlled directly via Relay 1
+- EU Cognito pool constants are present in the source but have not yet been exercised — open an issue if you're on a EU account and willing to test
 
-1. Check the **API Connection** binary sensor - it should be "On"
-2. Check your network connection
-3. Verify the device is powered on
-4. Check the integration diagnostics (Settings → Devices & Services → Pentair IntelliConnect → 3 dots → Download diagnostics)
+## Contributing
 
-## 🤝 Contributing
-
-Contributions are welcome! Please open an issue or pull request if you have suggestions or improvements.
-
-You have two options to set up a development environment — expand below for full details.
+Issues and pull requests are welcome. The repository ships a fully configured devcontainer (Home Assistant + Python tooling + Node.js + lint/format/test scripts).
 
 <details>
-<summary><strong>Development Setup</strong></summary>
+<summary><strong>Development setup</strong></summary>
 
-Both options provide the same fully-configured environment with Home Assistant, Python 3.14, Node.js LTS, and all necessary tools.
+### GitHub Codespaces
 
-### Option 1: GitHub Codespaces (Recommended) ☁️
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tikotzky/hacs-pentair-pool?quickstart=1)
 
-Develop directly in your browser without installing anything locally!
+Click the badge, wait 2–3 minutes for the container to build, then run:
 
-1. Click the green **"Code"** button in this repository
-2. Switch to the **"Codespaces"** tab
-3. Click **"Create codespace on main"**
-4. **Wait for setup** (2-3 minutes first time) — everything installs automatically
-5. **Review and commit** your changes in the Source Control panel (`Ctrl+Shift+G`)
+```bash
+script/develop   # starts Home Assistant on port 8123
+```
 
-> [!TIP]
-> Codespaces gives you **60 hours/month free** for personal accounts. When you start Home Assistant (`script/develop`), port 8123 forwards automatically.
+### Local devcontainer
 
-### Option 2: Local Development with VS Code 💻
+Requires Docker (or OrbStack / Rancher / Colima / Docker CE) and VS Code with the Dev Containers extension. Clone the repository, open in VS Code, choose **Reopen in Container**, then `script/develop`.
 
-#### Prerequisites
+### Validation
 
-You'll need these installed locally:
-
-- **A Docker-compatible container engine** — see options by platform:
-
-  | Option                                                                                                                   | 🍎 macOS | 🐧 Linux | 🪟 Windows | Notes                                                                                                                                                                                                                                     |
-  | ------------------------------------------------------------------------------------------------------------------------ | :------: | :------: | :--------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | [Docker Desktop](https://www.docker.com/products/docker-desktop/)                                                        |    ✅    |    ✅    |     ✅     | **Easiest starting point for all platforms.** GUI-based, well-documented, one installer. Uses WSL2 as default backend on Windows (Hyper-V also available). Installation requires admin rights; daily use does not. Free for personal use. |
-  | [OrbStack](https://orbstack.dev/) ⭐                                                                                     |    ✅    |    —     |     —      | **Recommended for macOS** once Docker Desktop feels slow. Starts in ~2s, much lighter on RAM/CPU, full Docker API compatibility. Free for personal use.                                                                                   |
-  | [Docker CE](https://docs.docker.com/engine/install/) (native) ⭐                                                         |    —     |    ✅    |     —      | **Recommended for Linux.** Install directly via your package manager — no VM, no GUI, no overhead. Free.                                                                                                                                  |
-  | [WSL2](https://learn.microsoft.com/windows/wsl/install) + [Docker CE](https://docs.docker.com/engine/install/ubuntu/) ⭐ |    —     |    —     |     ✅     | **Recommended for Windows** once you're comfortable with WSL2. Docker runs natively inside WSL2 — no GUI overhead. Requires one-time WSL2 setup. Free.                                                                                    |
-  | [Rancher Desktop](https://rancherdesktop.io/)                                                                            |    ✅    |    ✅    |     ✅     | Open source by SUSE. GUI-based, uses WSL2 on Windows. Good alternative to Docker Desktop. Free.                                                                                                                                           |
-  | [Colima](https://github.com/abiosoft/colima)                                                                             |    ✅    |    ✅    |     —      | CLI-only, very lightweight. Good for terminal-focused workflows. Free.                                                                                                                                                                    |
-
-- **VS Code** with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- **Git** — macOS and Linux usually have it already; see below if not, or to get a newer version:
-  - **🍎 macOS:** The system Git (`xcode-select --install`) works fine. Recommended: `brew install git` ([Homebrew](https://brew.sh/)) for a current version.
-  - **🐧 Linux:** Usually pre-installed. If not: `sudo apt install git` (or your distro's equivalent).
-  - **🪟 Windows + WSL2 ⭐:** Install Git _inside WSL2_ with `sudo apt install git`. Git on Windows itself is not needed — VS Code clones and operates entirely within WSL2.
-  - **🪟 Windows + Docker Desktop:** Install via `winget install Git.Git` or download [Git for Windows](https://git-scm.com/download/win).
-- **Hardware** — the devcontainer runs a full Home Assistant instance including Python tooling:
-
-  |          | Minimum    | Recommended                           |
-  | -------- | ---------- | ------------------------------------- |
-  | **RAM**  | 8 GB       | 16 GB or more                         |
-  | **CPU**  | 4 cores    | 8 cores or more                       |
-  | **Disk** | 10 GB free | 20 GB free (SSD strongly recommended) |
-
-> [!TIP]
-> **Not sure which Docker option to pick?** Start with [Docker Desktop](https://www.docker.com/products/docker-desktop/) — it works on all platforms, has a GUI, and needs no extra setup. The ⭐ options are faster alternatives once you're comfortable. macOS and Linux offer the best devcontainer experience — containers run with no extra VM layer and file I/O is fast. Windows works well too; this integration uses named container volumes (files live inside WSL2, not on the Windows drive) to keep performance acceptable.
-
-> [!NOTE]
-> **New to Dev Containers?** See the [VS Code Dev Containers documentation](https://code.visualstudio.com/docs/devcontainers/containers#_system-requirements) for system requirements and how to install the extension. **Once the extension is installed, you're done** — this repository already ships a complete devcontainer configuration. You don't need to follow the rest of the VS Code guide; the setup steps below are all that's needed.
-
-#### Setup Steps
-
-1. **Clone in a Dev Container:**
-
-   **🍎 macOS / 🐧 Linux:** Clone the repository and open the folder in VS Code → click **"Reopen in Container"** when prompted (or `F1` → **"Dev Containers: Reopen in Container"**).
-
-   **🪟 Windows:** In VS Code, press `F1` → **"Dev Containers: Clone Repository in Named Container Volume..."** and enter the repository URL. This keeps files inside WSL2 for best I/O performance.
-
-2. Wait for the container to build (2-3 minutes first time)
-
-3. **Review and commit** changes in Source Control (`Ctrl+Shift+G`)
-
-4. **Start developing**:
-
-   ```bash
-   script/develop  # Home Assistant runs at http://localhost:8123
-   ```
-
-> [!NOTE]
-> Both Codespaces and local DevContainer provide the exact same experience. The only difference is where the container runs (GitHub's cloud vs. your machine).
+```bash
+script/check    # hassfest + ruff + spellcheck
+script/test     # pytest
+```
 
 </details>
 
----
+## AI-assisted development
 
-## 🤖 AI-Assisted Development
+This integration was developed with substantial assistance from AI coding agents (Claude, GitHub Copilot, others). The protocol details were reverse-engineered from captures of the official Pentair Home Android app; see `docs/` for protocol notes if you're contributing. AI-generated code in this repository is reviewed and exercised against a real controller, but please [open an issue](https://github.com/tikotzky/hacs-pentair-pool/issues) if you spot something off.
 
-> [!NOTE]
-> **Transparency Notice:** This integration was developed with assistance from AI coding agents (GitHub Copilot, Claude, and others). While the codebase follows Home Assistant Core standards, AI-generated code may not be reviewed or tested to the same extent as manually written code. AI tools were used to generate boilerplate code, implement standard integration features (config flow, coordinator, entities), ensure code quality and type safety, and write documentation. If you encounter unexpected behavior, please [open an issue](../../issues) on GitHub.
->
-> _This section can be removed or modified if AI assistance was not used in your integration's development._
+## License
 
----
+MIT — see [LICENSE](LICENSE).
 
-## 📄 License
+This project is not affiliated with, endorsed by, or supported by Pentair.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Made with ❤️ by [@tikotzky][user_profile]**
-
----
-
-[commits-shield]: https://img.shields.io/github/commit-activity/y/tikotzky/homeassistant-pentair-pool.svg?style=for-the-badge
-[commits]: https://github.com/tikotzky/homeassistant-pentair-pool/commits/main
+[commits-shield]: https://img.shields.io/github/commit-activity/y/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
+[commits]: https://github.com/tikotzky/hacs-pentair-pool/commits/main
 [hacs]: https://github.com/hacs/integration
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/tikotzky/homeassistant-pentair-pool.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40tikotzky-blue.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/tikotzky/homeassistant-pentair-pool.svg?style=for-the-badge
-[releases]: https://github.com/tikotzky/homeassistant-pentair-pool/releases
-[user_profile]: https://github.com/jpawlowski
-
-<!-- Optional badge definitions - uncomment if needed:
-[buymecoffee]: https://www.buymeacoffee.com/jpawlowski
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
--->
+[releases-shield]: https://img.shields.io/github/release/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
+[releases]: https://github.com/tikotzky/hacs-pentair-pool/releases
