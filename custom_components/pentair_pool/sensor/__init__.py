@@ -16,12 +16,15 @@ if TYPE_CHECKING:
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001
+    hass: HomeAssistant,
     entry: PentairPoolConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create one field-backed sensor per (device, field), plus the live
-    cooldown countdown for devices that expose `ras0` (Relay1_Timer_Status)."""
+    """Create one field-backed sensor per (device, field).
+
+    Also adds the live cooldown countdown for devices that expose `ras0`
+    (Relay1_Timer_Status).
+    """
     coordinator = entry.runtime_data.coordinator
     entities = []
     for device_id, dev in (coordinator.data or {}).items():

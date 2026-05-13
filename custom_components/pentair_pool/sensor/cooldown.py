@@ -26,12 +26,7 @@ from typing import TYPE_CHECKING
 
 from custom_components.pentair_pool.const import FIELD_RA4, FIELD_RAS0
 from custom_components.pentair_pool.entity import PentairPoolEntity
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorEntityDescription,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import UnitOfTime
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -95,9 +90,12 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
 
     @callback
     def _on_tick(self, _now: dt.datetime) -> None:
-        """Re-render every second; on transition to 0, kick a coordinator
-        refresh so the rest of the entities pick up the post-cooldown state
-        (pump ra4=0, htd1 transition) without waiting for the 60 s poll."""
+        """Re-render every second.
+
+        On transition to 0, kick a coordinator refresh so the rest of the
+        entities pick up the post-cooldown state (pump ra4=0, htd1
+        transition) without waiting for the 60 s poll.
+        """
         if self._baseline is None:
             return
         remaining = self._remaining()
@@ -148,6 +146,7 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
 
     @property
     def native_value(self) -> int | None:
+        """Seconds remaining, or 0 once the pump is verifiably off."""
         # Always report 0 once the pump is verifiably off, even if we never
         # received a ras0 baseline this session.
         if self._pump_stopped():
@@ -158,6 +157,7 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, str | int | None]:
+        """Diagnostic attributes (formatted MM:SS, push lag, pump-stop flag)."""
         if self._baseline is None:
             return {"pump_stopped": self._pump_stopped()}
         rem = self._remaining()

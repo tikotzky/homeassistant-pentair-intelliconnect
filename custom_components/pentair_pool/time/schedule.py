@@ -89,6 +89,7 @@ class PentairPoolScheduleStart(_ScheduleTimeBase):
     field_code = FIELD_RA1
 
     def __init__(self, coordinator: PentairPoolDataUpdateCoordinator, device_id: str) -> None:
+        """Bind to one device's `ra1` field."""
         super().__init__(
             coordinator,
             device_id,
@@ -109,6 +110,7 @@ class PentairPoolScheduleEnd(_ScheduleTimeBase):
     field_code = FIELD_RA2
 
     def __init__(self, coordinator: PentairPoolDataUpdateCoordinator, device_id: str) -> None:
+        """Bind to one device's `ra2` field."""
         super().__init__(
             coordinator,
             device_id,

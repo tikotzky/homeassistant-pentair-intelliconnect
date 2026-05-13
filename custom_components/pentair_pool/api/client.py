@@ -17,14 +17,14 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from collections.abc import Awaitable, Callable
 import contextlib
+from datetime import UTC, datetime
 import hashlib
 import hmac
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -134,7 +134,7 @@ class PentairPoolApiClient:
 
         try:
             tokens = await asyncio.to_thread(_srp_authenticate)
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             # pycognito raises botocore's NotAuthorizedException for bad creds.
             raise PentairPoolApiClientAuthenticationError(str(err)) from err
 
@@ -162,7 +162,7 @@ class PentairPoolApiClient:
             },
             data=json.dumps(body),
         ) as resp:
-            if resp.status != 200:  # noqa: PLR2004
+            if resp.status != 200:
                 text = await resp.text()
                 raise PentairPoolApiClientAuthenticationError(f"REFRESH_TOKEN_AUTH failed: {resp.status} {text}")
             # Cognito returns Content-Type: application/x-amz-json-1.1, which aiohttp
@@ -184,7 +184,7 @@ class PentairPoolApiClient:
                 },
                 data=json.dumps({"IdentityPoolId": IDENTITY_POOL_ID, "Logins": {LOGINS_KEY: self._id_token}}),
             ) as resp:
-                if resp.status != 200:  # noqa: PLR2004
+                if resp.status != 200:
                     raise PentairPoolApiClientAuthenticationError(
                         f"Cognito GetId failed: {resp.status} {await resp.text()}",
                     )
@@ -198,7 +198,7 @@ class PentairPoolApiClient:
                 },
                 data=json.dumps({"IdentityId": identity_id, "Logins": {LOGINS_KEY: self._id_token}}),
             ) as resp:
-                if resp.status != 200:  # noqa: PLR2004
+                if resp.status != 200:
                     raise PentairPoolApiClientAuthenticationError(
                         f"GetCredentialsForIdentity failed: {resp.status} {await resp.text()}",
                     )
@@ -266,8 +266,8 @@ class PentairPoolApiClient:
         canonical_headers = "".join(f"{k}:{headers[k]}\n" for k in sorted(headers))
         payload_hash = hashlib.sha256(body).hexdigest()
 
-        canonical_request = "\n".join(
-            [method.upper(), canonical_uri, canonical_qs, canonical_headers, signed_headers, payload_hash],
+        canonical_request = (
+            f"{method.upper()}\n{canonical_uri}\n{canonical_qs}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
         )
 
         algorithm = "AWS4-HMAC-SHA256"
@@ -312,7 +312,7 @@ class PentairPoolApiClient:
                 text = await resp.text()
                 if resp.status in (401, 403):
                     raise PentairPoolApiClientAuthenticationError(f"{method} {path} -> {resp.status}: {text}")
-                if resp.status >= 400:  # noqa: PLR2004
+                if resp.status >= 400:
                     raise PentairPoolApiClientError(f"{method} {path} -> {resp.status}: {text}")
                 return json.loads(text) if text else {}
         except (TimeoutError, aiohttp.ClientError) as err:

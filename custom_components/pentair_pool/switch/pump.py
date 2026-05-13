@@ -89,6 +89,7 @@ class PentairPoolPumpSwitch(SwitchEntity, PentairPoolEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, str | bool | None]:
+        """Expose ra0/ra4 plus any optimistic-override that's currently held."""
         return {
             "ra0": self.field_value(FIELD_RA0),
             "ra4_watts": self.field_value(FIELD_RA4),

@@ -172,9 +172,7 @@ class PentairPoolDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str,
             return
         snapshot = dict(self.data)
         per_device = dict(snapshot.get(device_id) or {})
-        existing_fields = dict(per_device.get("fields") or {})
-        for k, v in fields.items():
-            existing_fields[k] = v
+        existing_fields = {**(per_device.get("fields") or {}), **fields}
         per_device["fields"] = existing_fields
         snapshot[device_id] = per_device
         self.async_set_updated_data(snapshot)

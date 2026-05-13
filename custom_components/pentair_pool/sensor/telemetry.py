@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 from custom_components.pentair_pool.const import (
     FIELD_HTD1,
-    FIELD_HTD14,
     FIELD_ICS1,
     FIELD_ICS2,
     FIELD_ICS9,
@@ -22,12 +21,7 @@ from custom_components.pentair_pool.const import (
     HTD1_LABELS,
 )
 from custom_components.pentair_pool.entity import PentairPoolEntity
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorEntityDescription,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import PERCENTAGE, UnitOfPower, UnitOfTemperature, UnitOfTime
 
 if TYPE_CHECKING:
