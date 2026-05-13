@@ -213,7 +213,7 @@ SignedHeaders=host;iseuropeanuser;x-amz-date;x-amz-id-token;x-amz-security-token
 ## 5. File map
 
 ```text
-hacs-pentair-pool/
+homeassistant-pentair-intelliconnect/
 ├── custom_components/pentair_pool/
 │   ├── __init__.py                            entry setup/unload
 │   ├── manifest.json                          requires pycognito>=2024.5.1

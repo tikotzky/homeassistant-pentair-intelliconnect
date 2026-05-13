@@ -5,10 +5,10 @@
     "@tikotzky"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/tikotzky/hacs-pentair-pool",
+  "documentation": "https://github.com/tikotzky/homeassistant-pentair-intelliconnect",
   "integration_type": "hub",
   "iot_class": "cloud_push",
-  "issue_tracker": "https://github.com/tikotzky/hacs-pentair-pool/issues",
+  "issue_tracker": "https://github.com/tikotzky/homeassistant-pentair-intelliconnect/issues",
   "loggers": [
     "pycognito"
   ],

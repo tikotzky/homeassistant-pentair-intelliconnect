@@ -47,7 +47,7 @@ The WebSocket push is the primary update path; a 60 s REST fallback poll runs in
 
 This integration requires [HACS](https://hacs.xyz/).
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tikotzky&repository=hacs-pentair-pool&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tikotzky&repository=homeassistant-pentair-intelliconnect&category=integration)
 
 1. Click "Download" in HACS to install the integration
 2. Restart Home Assistant
@@ -108,7 +108,7 @@ Issues and pull requests are welcome. The repository ships a fully configured de
 
 ### GitHub Codespaces
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tikotzky/hacs-pentair-pool?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tikotzky/homeassistant-pentair-intelliconnect?quickstart=1)
 
 Click the badge, wait 2–3 minutes for the container to build, then run:
 
@@ -131,7 +131,7 @@ script/test     # pytest
 
 ## AI-assisted development
 
-This integration was developed with substantial assistance from AI coding agents (Claude, GitHub Copilot, others). The protocol details were reverse-engineered from captures of the official Pentair Home Android app; see `docs/` for protocol notes if you're contributing. AI-generated code in this repository is reviewed and exercised against a real controller, but please [open an issue](https://github.com/tikotzky/hacs-pentair-pool/issues) if you spot something off.
+This integration was developed with substantial assistance from AI coding agents (Claude, GitHub Copilot, others). The protocol details were reverse-engineered from captures of the official Pentair Home Android app; see `docs/` for protocol notes if you're contributing. AI-generated code in this repository is reviewed and exercised against a real controller, but please [open an issue](https://github.com/tikotzky/homeassistant-pentair-intelliconnect/issues) if you spot something off.
 
 ## License
 
@@ -139,11 +139,11 @@ MIT — see [LICENSE](LICENSE).
 
 This project is not affiliated with, endorsed by, or supported by Pentair.
 
-[commits-shield]: https://img.shields.io/github/commit-activity/y/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
-[commits]: https://github.com/tikotzky/hacs-pentair-pool/commits/main
+[commits-shield]: https://img.shields.io/github/commit-activity/y/tikotzky/homeassistant-pentair-intelliconnect.svg?style=for-the-badge
+[commits]: https://github.com/tikotzky/homeassistant-pentair-intelliconnect/commits/main
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/tikotzky/homeassistant-pentair-intelliconnect.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40tikotzky-blue.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/tikotzky/hacs-pentair-pool.svg?style=for-the-badge
-[releases]: https://github.com/tikotzky/hacs-pentair-pool/releases
+[releases-shield]: https://img.shields.io/github/release/tikotzky/homeassistant-pentair-intelliconnect.svg?style=for-the-badge
+[releases]: https://github.com/tikotzky/homeassistant-pentair-intelliconnect/releases
