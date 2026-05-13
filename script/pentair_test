@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# pentair_test: host/devcontainer-agnostic wrapper around _pentair_test.py
+#
+# When invoked outside the devcontainer (i.e. on the macOS host), this script
+# finds the running VS Code devcontainer for this repo and `docker exec`s the
+# Python driver inside it. Inside the container, the Python script talks to HA
+# on 127.0.0.1:8123 — no VS Code port-forward needed.
+#
+# Inside the container, this script just runs the Python driver directly.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PY_SCRIPT="$SCRIPT_DIR/_pentair_test.py"
+
+if [ -f /.dockerenv ]; then
+    # Already inside a container — run directly.
+    exec python3 "$PY_SCRIPT" "$@"
+fi
+
+# Host path: find the devcontainer for this repo.
+REPO_NAME="$(basename "$(cd "$SCRIPT_DIR/.." && pwd)")"
+CID="$(docker ps --format '{{.ID}}\t{{.Image}}' 2>/dev/null | awk -v r="$REPO_NAME" '$2 ~ "vsc-"r"-" {print $1; exit}')"
+
+if [ -z "$CID" ]; then
+    echo "pentair_test: no running devcontainer found for repo '$REPO_NAME'" >&2
+    echo "    expected an image matching 'vsc-${REPO_NAME}-*'. docker ps output:" >&2
+    docker ps --format '  {{.ID}}  {{.Names}}  {{.Image}}' >&2
+    exit 1
+fi
+
+# Repo is bind-mounted at /workspaces/<repo-name> inside the devcontainer
+# (VS Code's default for dev containers).
+exec docker exec -i "$CID" python3 "/workspaces/$REPO_NAME/script/_pentair_test.py" "$@"

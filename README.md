@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icons/logo.png" alt="Pentair Pool" width="200" />
+</p>
+
 # Pentair Pool
 
 [![GitHub Release][releases-shield]][releases]

@@ -2,152 +2,84 @@
   "config": {
     "step": {
       "user": {
-        "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
+        "description": "Sign in with your Pentair Home account credentials. See the [documentation]({documentation_url}) if you need help.",
         "data": {
-          "username": "Username",
+          "username": "Email",
           "password": "Password"
         }
       },
       "reconfigure": {
-        "description": "Update the credentials for this integration.",
+        "description": "Update the credentials for this Pentair Home account.",
         "data": {
-          "username": "Username",
+          "username": "Email",
           "password": "Password"
         }
       },
       "reauth_confirm": {
-        "title": "Reauthenticate Integration",
-        "description": "The credentials for {username} are no longer valid. Please provide updated credentials to restore access.",
+        "title": "Reauthenticate Pentair Home",
+        "description": "The credentials for {username} are no longer valid. Please re-enter the password to restore access.",
         "data": {
-          "username": "Username",
+          "username": "Email",
           "password": "Password"
         }
       }
     },
     "error": {
-      "auth": "Username/Password is wrong.",
-      "connection": "Unable to connect to the server.",
+      "auth": "Email or password is wrong.",
+      "connection": "Unable to reach Pentair Cloud.",
       "unknown": "Unknown error occurred."
     },
     "abort": {
-      "already_configured": "This entry is already configured."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Configure Integration Options",
-        "description": "Customize how this integration operates.",
-        "data": {
-          "update_interval_hours": "Update interval (hours)",
-          "enable_debugging": "Enable debug logging",
-          "custom_icon": "Custom icon (optional)"
-        },
-        "data_description": {
-          "update_interval_hours": "How often to refresh data from the API (0.25 to 24 hours)",
-          "enable_debugging": "Enable detailed debug logging for troubleshooting",
-          "custom_icon": "Override the default icon for entities (optional)"
-        }
-      }
+      "already_configured": "This Pentair Home account is already configured."
     }
   },
   "exceptions": {
     "authentication_failed": {
-      "message": "Authentication failed during data update."
+      "message": "Authentication with Pentair Cloud failed."
     },
     "update_failed": {
-      "message": "Failed to update data from the server."
-    },
-    "switch_turn_on_failed": {
-      "message": "Failed to turn on the switch."
-    },
-    "switch_turn_off_failed": {
-      "message": "Failed to turn off the switch."
-    },
-    "number_set_failed": {
-      "message": "Failed to set the target value."
+      "message": "Failed to update data from Pentair Cloud."
     }
   },
   "entity": {
-    "sensor": {
-      "air_quality_index": {
-        "name": "Air Quality Index"
-      },
-      "pm25": {
-        "name": "PM2.5"
-      },
-      "filter_life": {
-        "name": "Filter Life Remaining"
-      },
-      "runtime": {
-        "name": "Total Runtime"
-      }
-    },
-    "binary_sensor": {
-      "api_connectivity": {
-        "name": "API Connection"
-      },
-      "filter_replacement": {
-        "name": "Filter Replacement Needed"
-      }
-    },
     "switch": {
-      "child_lock": {
-        "name": "Child Lock"
-      },
-      "led_display": {
-        "name": "LED Display"
-      }
+      "filter_pump": { "name": "Filter pump" },
+      "daily_schedule": { "name": "Daily schedule" }
     },
-    "select": {
-      "fan_speed": {
-        "name": "Fan Speed",
-        "state": {
-          "low": "Low",
-          "medium": "Medium",
-          "high": "High",
-          "auto": "Auto"
-        }
-      }
+    "climate": {
+      "heater": { "name": "Heater" }
     },
     "number": {
-      "target_humidity": {
-        "name": "Target Humidity"
-      }
+      "chlorine_setpoint": { "name": "Chlorine output" }
     },
-    "button": {
-      "reset_filter": {
-        "name": "Reset Filter Timer"
-      }
+    "sensor": {
+      "water_temperature": { "name": "Water temperature" },
+      "air_temperature": { "name": "Air temperature" },
+      "heater_mode": { "name": "Heater mode" },
+      "filter_pump_power": { "name": "Filter pump power" },
+      "heater_cooldown": { "name": "Heater cooldown" },
+      "chlorine_actual": { "name": "Chlorine output (actual)" },
+      "salt_ppm": { "name": "Salt level" },
+      "salt_cell_temp": { "name": "Salt cell water temperature" },
+      "boost_remaining": { "name": "Boost remaining" },
+      "salt_cell_hours": { "name": "Salt cell lifetime hours" },
+      "salt_cell_firmware": { "name": "Salt cell firmware" },
+      "salt_cell_model": { "name": "Salt cell model" }
     },
-    "fan": {
-      "air_purifier": {
-        "name": "Air Purifier"
-      }
+    "binary_sensor": {
+      "online": { "name": "Online" },
+      "alarm": { "name": "Alarm" },
+      "filter_pump_running": { "name": "Filter pump running" }
+    },
+    "time": {
+      "schedule_start": { "name": "Daily schedule start" },
+      "schedule_end": { "name": "Daily schedule stop" }
     }
   },
-  "issues": {
-    "deprecated_api_endpoint": {
-      "title": "Deprecated API Endpoint",
-      "fix_flow": {
-        "step": {
-          "init": {
-            "title": "Update API Endpoint",
-            "description": "Your device is using API version {api_version} which is deprecated. Please update to v2 for continued support and new features.\n\nClick Submit to update your device to use the new API endpoint (v2). This will reload the integration."
-          }
-        }
-      }
-    },
-    "missing_configuration": {
-      "title": "Missing Configuration",
-      "fix_flow": {
-        "step": {
-          "init": {
-            "title": "Acknowledge Configuration Issue",
-            "description": "Some configuration options are missing or invalid. Please reconfigure the integration to ensure proper operation.\n\nClick Submit to acknowledge this issue. You may need to reconfigure the integration if problems persist."
-          }
-        }
-      }
+  "services": {
+    "reload_data": {
+      "name": "Reload data",
+      "description": "Force an immediate REST poll of the Pentair Cloud API."
     }
   }
 }

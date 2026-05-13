@@ -1,19 +1,17 @@
 """
 Base entity class for pentair_pool.
 
-This module provides the base entity class that all integration entities inherit from.
-It handles common functionality like device info, unique IDs, and coordinator integration.
-
-For more information on entities:
-https://developers.home-assistant.io/docs/core/entity
-https://developers.home-assistant.io/docs/core/entity/index/#common-properties
+Pentair Cloud groups everything under one account, but each physical
+controller (e.g. an IntelliConnect with `deviceType=PIF0`) becomes its
+own HA device. The entity base therefore takes a `device_id` and
+projects a per-device `DeviceInfo`.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from custom_components.pentair_pool.const import ATTRIBUTION
+from custom_components.pentair_pool.const import ATTRIBUTION, DOMAIN
 from custom_components.pentair_pool.coordinator import PentairPoolDataUpdateCoordinator
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -23,19 +21,7 @@ if TYPE_CHECKING:
 
 
 class PentairPoolEntity(CoordinatorEntity[PentairPoolDataUpdateCoordinator]):
-    """
-    Base entity class for pentair_pool.
-
-    All entities in this integration inherit from this class, which provides:
-    - Automatic coordinator updates
-    - Device info management
-    - Unique ID generation
-    - Attribution and naming conventions
-
-    For more information:
-    https://developers.home-assistant.io/docs/core/entity
-    https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-    """
+    """Common base wiring (device info, unique_id, coordinator hookup)."""
 
     _attr_attribution = ATTRIBUTION
     _attr_has_entity_name = True
@@ -44,27 +30,44 @@ class PentairPoolEntity(CoordinatorEntity[PentairPoolDataUpdateCoordinator]):
         self,
         coordinator: PentairPoolDataUpdateCoordinator,
         entity_description: EntityDescription,
+        device_id: str,
     ) -> None:
-        """
-        Initialize the base entity.
-
-        Args:
-            coordinator: The data update coordinator for this entity.
-            entity_description: The entity description defining characteristics.
-
-        """
+        """Bind one entity to one Pentair device."""
         super().__init__(coordinator)
         self.entity_description = entity_description
-        # Include entity description key in unique_id to support multiple entities
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{entity_description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={
-                (
-                    coordinator.config_entry.domain,
-                    coordinator.config_entry.entry_id,
-                ),
-            },
-            name=coordinator.config_entry.title,
-            manufacturer=coordinator.config_entry.domain,
-            model=coordinator.data.get("model", "Unknown"),
+        self._device_id = device_id
+        self._attr_unique_id = f"{device_id}_{entity_description.key}"
+
+    # ----------------------------------------------------------------- helpers
+
+    @property
+    def device_state(self) -> dict[str, Any]:
+        """The per-device dict from `coordinator.data` (empty if not yet loaded)."""
+        return (self.coordinator.data or {}).get(self._device_id) or {}
+
+    @property
+    def fields(self) -> dict[str, dict[str, Any]]:
+        """The device's `fields` map."""
+        return self.device_state.get("fields") or {}
+
+    def field_value(self, code: str) -> str | None:
+        """Return the string value for a field, or None if not present."""
+        f = self.fields.get(code)
+        return f.get("value") if f else None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Build per-device DeviceInfo from the listdevices payload."""
+        dev = self.device_state.get("device_info") or {}
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._device_id)},
+            name=dev.get("pname") or self._device_id,
+            manufacturer="Pentair",
+            model=dev.get("deviceType"),
+            sw_version=self.device_state.get("fwVersion"),
         )
+
+    @property
+    def available(self) -> bool:
+        """Available if the coordinator + last device snapshot say online."""
+        return super().available and bool(self.device_state.get("online", True))

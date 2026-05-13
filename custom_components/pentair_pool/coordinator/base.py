@@ -1,12 +1,21 @@
 """
-Core DataUpdateCoordinator implementation for pentair_pool.
+DataUpdateCoordinator for pentair_pool.
 
-This module contains the main coordinator class that manages data fetching
-and updates for all entities in the integration. It handles refresh cycles,
-error handling, and triggers reauthentication when needed.
+State layout exposed to entities (`coordinator.data`):
 
-For more information on coordinators:
-https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
+    {
+        device_id: {
+            "device_info": {<top-level keys from listdevices -- pname, arn, ...>},
+            "fields":      {field_code: {"value": "...", "name": "...", "min": "...", "max": "...", ...}},
+            "online":      bool,
+            "alarm":       bool,
+            "fwVersion":   str | None,
+        },
+        ...
+    }
+
+WebSocket pushes (`event_type=device_data`) merge into the `fields` map
+field-by-field. The hourly REST poll is a backstop for missed pushes.
 """
 
 from __future__ import annotations
@@ -14,112 +23,164 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from custom_components.pentair_pool.api import (
+    PentairPoolApiClient,
     PentairPoolApiClientAuthenticationError,
     PentairPoolApiClientError,
+    PentairPoolWebSocket,
 )
 from custom_components.pentair_pool.const import LOGGER
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 if TYPE_CHECKING:
     from custom_components.pentair_pool.data import PentairPoolConfigEntry
 
 
-class PentairPoolDataUpdateCoordinator(DataUpdateCoordinator):
-    """
-    Class to manage fetching data from the API.
-
-    This coordinator handles all data fetching for the integration and distributes
-    updates to all entities. It manages:
-    - Periodic data updates based on update_interval
-    - Error handling and recovery
-    - Authentication failure detection and reauthentication triggers
-    - Data distribution to all entities
-    - Context-based data fetching (only fetch data for active entities)
-
-    For more information:
-    https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-
-    Attributes:
-        config_entry: The config entry for this integration instance.
-    """
+class PentairPoolDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
+    """Manages REST polling + WS push integration for one Pentair account."""
 
     config_entry: PentairPoolConfigEntry
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize and prepare the WebSocket holder."""
+        super().__init__(*args, **kwargs)
+        self._ws: PentairPoolWebSocket | None = None
+
+    @property
+    def client(self) -> PentairPoolApiClient:
+        """The API client tied to this entry."""
+        return self.config_entry.runtime_data.client
+
     async def _async_setup(self) -> None:
-        """
-        Set up the coordinator.
-
-        This method is called automatically during async_config_entry_first_refresh()
-        and is the ideal place for one-time initialization tasks such as:
-        - Loading device information
-        - Setting up event listeners
-        - Initializing caches
-
-        This runs before the first data fetch, ensuring any required setup
-        is complete before entities start requesting data.
-        """
-        # Example: Fetch device info once at startup
-        # device_info = await self.config_entry.runtime_data.client.get_device_info()
-        # self._device_id = device_info["id"]
-        LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
-
-    async def _async_update_data(self) -> Any:
-        """
-        Fetch data from API endpoint.
-
-        This is the only method that should be implemented in a DataUpdateCoordinator.
-        It is called automatically based on the update_interval.
-
-        Context-based fetching:
-        The coordinator tracks which entities are currently listening via async_contexts().
-        This allows optimizing API calls to only fetch data that's actually needed.
-        For example, if only sensor entities are enabled, we can skip fetching switch data.
-
-        The API client uses the credentials from config_entry to authenticate:
-        - username: from config_entry.data["username"]
-        - password: from config_entry.data["password"]
-
-        Expected API response structure (example):
-        {
-            "userId": 1,      # Used as device identifier
-            "id": 1,          # Data record ID
-            "title": "...",   # Additional metadata
-            "body": "...",    # Additional content
-            # In production, would include:
-            # "air_quality": {"aqi": 45, "pm25": 12.3},
-            # "filter": {"life_remaining": 75, "runtime_hours": 324},
-            # "settings": {"fan_speed": "medium", "humidity": 55}
-        }
-
-        Returns:
-            The data from the API as a dictionary.
-
-        Raises:
-            ConfigEntryAuthFailed: If authentication fails, triggers reauthentication.
-            UpdateFailed: If data fetching fails for other reasons, optionally with retry_after.
-        """
+        """One-time login before the first refresh."""
+        LOGGER.debug("Pentair coordinator: running first-time login")
         try:
-            # Optional: Get active entity contexts to optimize data fetching
-            # listening_contexts = set(self.async_contexts())
-            # LOGGER.debug("Active entity contexts: %s", listening_contexts)
-
-            # Fetch data from API
-            # In production, you could pass listening_contexts to optimize the API call:
-            # return await self.config_entry.runtime_data.client.async_get_data(listening_contexts)
-            return await self.config_entry.runtime_data.client.async_get_data()
-        except PentairPoolApiClientAuthenticationError as exception:
-            LOGGER.warning("Authentication error - %s", exception)
+            await self.client.async_login()
+        except PentairPoolApiClientAuthenticationError as err:
+            LOGGER.warning("Pentair login failed: %s", err)
             raise ConfigEntryAuthFailed(
                 translation_domain="pentair_pool",
                 translation_key="authentication_failed",
-            ) from exception
-        except PentairPoolApiClientError as exception:
-            LOGGER.exception("Error communicating with API")
-            # If the API provides rate limit information, you can honor it:
-            # if hasattr(exception, 'retry_after'):
-            #     raise UpdateFailed(retry_after=exception.retry_after) from exception
+            ) from err
+
+    async def _async_update_data(self) -> dict[str, dict[str, Any]]:
+        """Full-state refresh via REST. Also (re)starts the WS subscription."""
+        try:
+            listing = await self.client.async_list_devices()
+        except PentairPoolApiClientAuthenticationError as err:
+            raise ConfigEntryAuthFailed(
+                translation_domain="pentair_pool",
+                translation_key="authentication_failed",
+            ) from err
+        except PentairPoolApiClientError as err:
             raise UpdateFailed(
                 translation_domain="pentair_pool",
                 translation_key="update_failed",
-            ) from exception
+            ) from err
+
+        devices: list[dict[str, Any]] = listing.get("response", [])
+        state: dict[str, dict[str, Any]] = {}
+
+        for dev in devices:
+            device_id = dev.get("deviceId") or _arn_to_device_id(dev.get("arn"))
+            if not device_id:
+                continue
+            try:
+                detail = await self.client.async_get_device(device_id)
+            except PentairPoolApiClientError as err:
+                LOGGER.warning("get_device(%s) failed: %s", device_id, err)
+                continue
+            # Response shape: {"response": {"data": [{"fields": {...}, "online": ..., ...}]}}
+            response = detail.get("response") or {}
+            data_items = response.get("data") if isinstance(response, dict) else None
+            if not data_items:
+                # Some endpoints return {"response": [{...}]} instead; tolerate both.
+                data_items = response if isinstance(response, list) else [response]
+            detail_data = (data_items or [{}])[0] or {}
+            state[device_id] = {
+                "device_info": dev,
+                "fields": detail_data.get("fields", {}) or {},
+                "online": detail_data.get("online", True),
+                "alarm": detail_data.get("alarm", False),
+                "fwVersion": detail_data.get("fwVersion"),
+            }
+
+        await self._ensure_ws_started(list(state))
+        return state
+
+    # --------------------------------------------------------------- WebSocket
+
+    async def _ensure_ws_started(self, device_ids: list[str]) -> None:
+        """Start the WS subscription on first poll, or restart with new device ids."""
+        if not device_ids:
+            return
+        if self._ws is None:
+            session = async_get_clientsession(self.hass)
+            self._ws = PentairPoolWebSocket(session, self.client, device_ids, self._handle_ws_update)
+            self._ws.start()
+            return
+        # If the device id set changed across polls, restart the WS with the new set.
+        if set(self._ws._device_ids) != set(device_ids):  # noqa: SLF001
+            await self._ws.stop()
+            session = async_get_clientsession(self.hass)
+            self._ws = PentairPoolWebSocket(session, self.client, device_ids, self._handle_ws_update)
+            self._ws.start()
+
+    async def async_shutdown(self) -> None:
+        """Stop the WS task on unload."""
+        if self._ws is not None:
+            await self._ws.stop()
+            self._ws = None
+        await super().async_shutdown()
+
+    async def _handle_ws_update(self, device_id: str, fields: dict[str, dict]) -> None:
+        """Merge a delta from a device_data WS frame into our state."""
+        if self.data is None:
+            return
+        snapshot = dict(self.data)
+        per_device = dict(snapshot.get(device_id) or {})
+        existing_fields = dict(per_device.get("fields") or {})
+        for k, v in fields.items():
+            existing_fields[k] = v
+        per_device["fields"] = existing_fields
+        snapshot[device_id] = per_device
+        self.async_set_updated_data(snapshot)
+
+    # ----------------------------------------------------------- command API
+
+    async def async_set_fields(self, device_id: str, payload: dict[str, Any]) -> None:
+        """Send a PUT and optimistically update local state.
+
+        The authoritative state will arrive on the WS shortly; this just makes
+        the HA UI snappy after a button tap.
+        """
+        try:
+            await self.client.async_set_fields(device_id, payload)
+        except PentairPoolApiClientAuthenticationError as err:
+            raise ConfigEntryAuthFailed(
+                translation_domain="pentair_pool",
+                translation_key="authentication_failed",
+            ) from err
+
+        if self.data is None:
+            return
+        snapshot = dict(self.data)
+        per_device = dict(snapshot.get(device_id) or {})
+        existing_fields = dict(per_device.get("fields") or {})
+        for k, v in payload.items():
+            existing = dict(existing_fields.get(k) or {})
+            existing["value"] = str(v)
+            existing_fields[k] = existing
+        per_device["fields"] = existing_fields
+        snapshot[device_id] = per_device
+        self.async_set_updated_data(snapshot)
+
+
+def _arn_to_device_id(arn: str | None) -> str | None:
+    """`arn:aws:iot:us-west-2:xxx:thing/PNRA1PIFXXXXXXXXXX` -> `PNRA1PIFXXXXXXXXXX`."""
+    if not arn:
+        return None
+    if "/" in arn:
+        return arn.rsplit("/", 1)[-1]
+    return None

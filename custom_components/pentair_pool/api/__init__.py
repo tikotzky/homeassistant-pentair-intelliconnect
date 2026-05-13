@@ -22,6 +22,8 @@ from .client import (
     PentairPoolApiClientAuthenticationError,
     PentairPoolApiClientCommunicationError,
     PentairPoolApiClientError,
+    PentairPoolWebSocket,
+    async_detect_user,
 )
 
 __all__ = [
@@ -29,4 +31,6 @@ __all__ = [
     "PentairPoolApiClientAuthenticationError",
     "PentairPoolApiClientCommunicationError",
     "PentairPoolApiClientError",
+    "PentairPoolWebSocket",
+    "async_detect_user",
 ]

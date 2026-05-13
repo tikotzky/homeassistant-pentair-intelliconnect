@@ -27,7 +27,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import PentairPoolApiClient
-from .const import DOMAIN, LOGGER
+from .const import DEFAULT_POLL_INTERVAL_SECONDS, DOMAIN, LOGGER
 from .coordinator import PentairPoolDataUpdateCoordinator
 from .data import PentairPoolData
 from .service_actions import async_setup_services
@@ -39,12 +39,11 @@ if TYPE_CHECKING:
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.FAN,
+    Platform.CLIMATE,
     Platform.NUMBER,
-    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
+    Platform.TIME,
 ]
 
 # This integration is configured via config entries only
@@ -119,13 +118,15 @@ async def async_setup_entry(
         session=async_get_clientsession(hass),
     )
 
-    # Initialize coordinator with config_entry
+    # Initialize coordinator with config_entry.
+    # WebSocket pushes carry sub-second updates, so the poll interval is a
+    # fallback for missed pushes rather than the primary update path.
     coordinator = PentairPoolDataUpdateCoordinator(
         hass=hass,
         logger=LOGGER,
         name=DOMAIN,
         config_entry=entry,
-        update_interval=timedelta(hours=1),
+        update_interval=timedelta(seconds=DEFAULT_POLL_INTERVAL_SECONDS),
         always_update=False,  # Only update entities when data actually changes
     )
 
@@ -168,7 +169,11 @@ async def async_unload_entry(
     For more information:
     https://developers.home-assistant.io/docs/config_entries_index/#unloading-entries
     """
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        coordinator = entry.runtime_data.coordinator
+        await coordinator.async_shutdown()
+    return unload_ok
 
 
 async def async_reload_entry(
