@@ -15,12 +15,12 @@ from custom_components.pentair_pool.const import (
 )
 from custom_components.pentair_pool.entity import PentairPoolEntity
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.core import callback
 
 if TYPE_CHECKING:
     from custom_components.pentair_pool.coordinator import PentairPoolDataUpdateCoordinator
 
 SCHEDULE_ON = {RA0_OFF_SCHEDULED, RA0_ON_SCHEDULED, RA0_TIMER_DONE_SCHEDULED}
-PUMP_INTENT_ON = {RA0_ON_NO_SCHEDULE, RA0_ON_SCHEDULED}
 
 DESCRIPTION = SwitchEntityDescription(
     key="filter_pump",
@@ -31,19 +31,28 @@ DESCRIPTION = SwitchEntityDescription(
 
 
 class PentairPoolPumpSwitch(SwitchEntity, PentairPoolEntity):
-    """Filter pump intent switch.
+    """Filter pump switch.
 
-    `is_on` reflects the user's manual-override **intent** stored in `ra0`,
-    NOT the physical pump state (which can lag commands by 1-3 s, or never
-    apply if the Daily Schedule is firing or the heater is in cooldown). This
-    makes the toggle predictable: tapping it flips the displayed state
-    immediately and stays.
+    `is_on` follows the pump's actual running state (`ra4 > 0`) so the
+    switch reads ON whenever the pump is circulating water -- whether
+    that's a manual override, a Daily Schedule firing, or a heater
+    cooldown extending the run. This matches what the Pentair app shows.
 
-    The actual physical state is exposed separately as
-    `binary_sensor.<device>_filter_pump_running` (derived from `ra4 > 0`).
+    When the user toggles the switch we hold an optimistic "pending"
+    state that overrides the displayed value until reality (`ra4`)
+    catches up. That gives two important properties:
+
+      1. Tap responsiveness: the switch flips immediately on tap and
+         doesn't bounce back during the 1-3 s the firmware takes to
+         apply the command or while WS pushes are in flight.
+      2. Cooldown intent preservation: if the user taps OFF while the
+         heater is in cooldown (`ra4` won't drop for several minutes),
+         the switch stays OFF the entire time -- their intent is clearly
+         "stop", and the pump will eventually obey when cooldown ends.
 
     Writes always target `ra0`, preserving the schedule bit so the user
-    doesn't accidentally disable their Daily Schedule by toggling the pump.
+    doesn't accidentally disable their Daily Schedule by toggling the
+    pump on/off.
     """
 
     def __init__(
@@ -54,46 +63,68 @@ class PentairPoolPumpSwitch(SwitchEntity, PentairPoolEntity):
         """Bind to one device."""
         super().__init__(coordinator, DESCRIPTION, device_id)
         self._attr_name = "Filter pump"
+        # `None` = follow truth (ra4). `True`/`False` = optimistic override
+        # in effect because the user just toggled and reality hasn't caught
+        # up yet. Cleared automatically when ra4 confirms the new state.
+        self._pending: bool | None = None
+
+    # ----------------------------------------------------------- state read
+
+    def _running_from_truth(self) -> bool | None:
+        v = self.field_value(FIELD_RA4)
+        if v is None:
+            return None
+        try:
+            return int(v) > 0
+        except ValueError:
+            return None
 
     @property
     def is_on(self) -> bool | None:
-        """True when ra0 encodes a manual ON intent.
-
-        Schedule-enabled OFF ("2") and schedule-disabled OFF ("0") both
-        return False; the firmware may still be running the pump because of
-        the schedule -- check `binary_sensor.*_filter_pump_running` for that.
-        """
-        v = self.field_value(FIELD_RA0)
-        if v is None:
-            return None
-        return v in PUMP_INTENT_ON
+        """Real running state, with the user's pending override on top."""
+        running = self._running_from_truth()
+        if self._pending is not None and running != self._pending:
+            return self._pending
+        return running
 
     @property
-    def extra_state_attributes(self) -> dict[str, str | None]:
-        """Expose the raw override field for automations + debugging."""
+    def extra_state_attributes(self) -> dict[str, str | bool | None]:
         return {
             "ra0": self.field_value(FIELD_RA0),
             "ra4_watts": self.field_value(FIELD_RA4),
+            "pending_override": self._pending,
         }
 
-    async def async_turn_on(self, **_: Any) -> None:
-        """Set the override on, preserving the schedule bit.
+    # ------------------------------------------------- pending reconciliation
 
-        Note: when the pump is already off and the Daily Schedule isn't
-        currently in its window, this will start the pump immediately.
-        """
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Clear the pending override once `ra4` matches what the user asked for."""
+        if self._pending is not None:
+            running = self._running_from_truth()
+            if running is not None and running == self._pending:
+                self._pending = None
+        super()._handle_coordinator_update()
+
+    # --------------------------------------------------------------- writes
+
+    async def async_turn_on(self, **_: Any) -> None:
+        """Manual override: pump on. Preserves the schedule bit."""
         sched = (self.field_value(FIELD_RA0) or "") in SCHEDULE_ON
         target = RA0_ON_SCHEDULED if sched else RA0_ON_NO_SCHEDULE
         await self.coordinator.async_set_fields(self._device_id, {FIELD_RA0: target})
+        self._pending = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **_: Any) -> None:
-        """Set the override off, preserving the schedule bit.
+        """Manual override: pump off. Preserves the schedule bit.
 
-        Note: this clears the manual override but does NOT cancel the Daily
-        Schedule. If the schedule is currently firing, the pump will keep
-        running until the schedule window closes. To stop the pump
-        unconditionally, also turn off the Daily Schedule switch.
+        If the heater is in cooldown the pump will keep physically running
+        for a few minutes; the optimistic OFF state is held until `ra4`
+        drops to 0, so the switch stays OFF for that whole window.
         """
         sched = (self.field_value(FIELD_RA0) or "") in SCHEDULE_ON
         target = RA0_OFF_SCHEDULED if sched else RA0_OFF_NO_SCHEDULE
         await self.coordinator.async_set_fields(self._device_id, {FIELD_RA0: target})
+        self._pending = False
+        self.async_write_ha_state()
