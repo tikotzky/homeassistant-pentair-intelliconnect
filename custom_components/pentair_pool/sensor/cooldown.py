@@ -73,7 +73,9 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
         await super().async_added_to_hass()
         self._sync_baseline()
         self._unsub_tick = async_track_time_interval(
-            self.hass, self._on_tick, dt.timedelta(seconds=1),
+            self.hass,
+            self._on_tick,
+            dt.timedelta(seconds=1),
         )
 
     async def async_will_remove_from_hass(self) -> None:
@@ -133,7 +135,7 @@ class PentairPoolCooldownCountdown(SensorEntity, PentairPoolEntity):
             return False
         try:
             return int(v) == 0
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return False
 
     def _remaining(self) -> int:

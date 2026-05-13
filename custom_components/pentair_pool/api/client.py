@@ -434,7 +434,8 @@ class PentairPoolWebSocket:
         if self._task is None or self._task.done():
             self._stop.clear()
             self._task = asyncio.create_task(
-                self._run_forever(), name=f"pentair-ws[{self._active_screen}]",
+                self._run_forever(),
+                name=f"pentair-ws[{self._active_screen}]",
             )
 
     async def stop(self) -> None:
@@ -455,11 +456,7 @@ class PentairPoolWebSocket:
                     backoff = 1.0
                     await self._register(ws)
                     hb = asyncio.create_task(self._heartbeat_loop(ws))
-                    au = (
-                        asyncio.create_task(self._appuse_loop(ws))
-                        if self._send_appuse
-                        else None
-                    )
+                    au = asyncio.create_task(self._appuse_loop(ws)) if self._send_appuse else None
                     try:
                         async for msg in ws:
                             if msg.type == aiohttp.WSMsgType.TEXT:
@@ -467,7 +464,8 @@ class PentairPoolWebSocket:
                             elif msg.type == aiohttp.WSMsgType.ERROR:
                                 _LOGGER.warning(
                                     "Pentair WS error (screen=%s): %s",
-                                    self._active_screen, ws.exception(),
+                                    self._active_screen,
+                                    ws.exception(),
                                 )
                                 break
                     finally:
@@ -482,7 +480,9 @@ class PentairPoolWebSocket:
                 raise
             except Exception as err:  # noqa: BLE001
                 _LOGGER.warning(
-                    "Pentair WS disconnected (screen=%s): %s", self._active_screen, err,
+                    "Pentair WS disconnected (screen=%s): %s",
+                    self._active_screen,
+                    err,
                 )
             if self._stop.is_set():
                 return

@@ -124,18 +124,21 @@ class PentairPoolHeater(ClimateEntity, PentairPoolEntity):
         if temp is None:
             return
         await self.coordinator.async_set_fields(
-            self._device_id, {FIELD_HTD2: int(round(float(temp) * 10))},
+            self._device_id,
+            {FIELD_HTD2: int(round(float(temp) * 10))},
         )
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """OFF mirrors the app behavior of writing both htd1 and htd13 to 0."""
         if hvac_mode == HVACMode.OFF:
             await self.coordinator.async_set_fields(
-                self._device_id, {FIELD_HTD1: HTD1_OFF, FIELD_HTD13: "0"},
+                self._device_id,
+                {FIELD_HTD1: HTD1_OFF, FIELD_HTD13: "0"},
             )
         elif hvac_mode == HVACMode.HEAT:
             # Writing htd1=1 puts the heater in Auto Idle; firmware decides
             # when to promote that to Heating (htd1=3) based on flow + temp.
             await self.coordinator.async_set_fields(
-                self._device_id, {FIELD_HTD1: HTD1_AUTO_IDLE},
+                self._device_id,
+                {FIELD_HTD1: HTD1_AUTO_IDLE},
             )

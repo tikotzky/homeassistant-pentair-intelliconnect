@@ -44,7 +44,7 @@ class PentairSensorDescription(SensorEntityDescription):
 def _as_int(v: str) -> int | None:
     try:
         return int(v)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

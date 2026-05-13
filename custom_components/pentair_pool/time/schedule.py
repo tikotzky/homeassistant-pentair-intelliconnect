@@ -35,7 +35,9 @@ def _utc_seconds_to_local_time(seconds: int, tz: dt.tzinfo) -> dt.time:
     run every day, so picking "today" is fine.
     """
     today_utc_midnight = dt.datetime.combine(
-        dt_util.utcnow().date(), dt.time(), tzinfo=dt.UTC,
+        dt_util.utcnow().date(),
+        dt.time(),
+        tzinfo=dt.UTC,
     )
     utc_instant = today_utc_midnight + dt.timedelta(seconds=seconds)
     return utc_instant.astimezone(tz).time()

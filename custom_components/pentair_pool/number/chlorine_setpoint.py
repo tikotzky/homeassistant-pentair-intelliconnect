@@ -52,5 +52,6 @@ class PentairPoolChlorineSetpoint(NumberEntity, PentairPoolEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Send new setpoint."""
         await self.coordinator.async_set_fields(
-            self._device_id, {FIELD_ICD1: int(round(value))},
+            self._device_id,
+            {FIELD_ICD1: int(round(value))},
         )
