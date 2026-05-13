@@ -19,15 +19,15 @@ The integration is reverse-engineered from the official Pentair Home mobile app;
 
 The integration is configured per Pentair account and surfaces one Home Assistant device per IntelliConnect controller on that account. Entities are only created if the controller actually reports the underlying field, so accessories you don't own (for example, a salt cell on a chlorine-tab pool) won't produce orphan entities.
 
-| Platform        | Entities                                                                                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `binary_sensor` | **Online** (connectivity), **Alarm** (problem flag), **Filter pump running** (true while Relay 1 draws power)                                                                                     |
-| `climate`       | **Heater** — HVAC entity wrapping the pool heater. `heat` / `off` modes, setpoint in °F, `current_temperature` from the water-temp probe, `hvac_action` reports `heating` / `idle` / `off`        |
-| `number`        | **Chlorine output** — IntelliChlor salt-cell output setpoint (0–100 %, slider)                                                                                                                    |
-| `sensor`        | **Water temperature**, **Air temperature**, **Heater mode** (Off / Auto idle / Heating / …), **Heater cooldown** (live 1 Hz countdown), **Filter pump power** (W)                                 |
-| `sensor` (salt) | **Chlorine actual** (%), **Salt** (ppm), **Salt cell temperature**, **Salt cell hours**, **Boost remaining** (s), **Salt cell model**, **Salt cell firmware**                                     |
-| `switch`        | **Filter pump** (manual override, preserves the schedule bit), **Daily schedule** (enable/disable the recurring schedule, preserves the pump on/off bit)                                          |
-| `time`          | **Daily schedule start**, **Daily schedule stop** (stored as UTC seconds-of-day on the controller, displayed in your Home Assistant timezone)                                                     |
+| Platform        | Entities                                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `binary_sensor` | **Online** (connectivity), **Alarm** (problem flag), **Filter pump running** (true while Relay 1 draws power)                                                                              |
+| `climate`       | **Heater** — HVAC entity wrapping the pool heater. `heat` / `off` modes, setpoint in °F, `current_temperature` from the water-temp probe, `hvac_action` reports `heating` / `idle` / `off` |
+| `number`        | **Chlorine output** — IntelliChlor salt-cell output setpoint (0–100 %, slider)                                                                                                             |
+| `sensor`        | **Water temperature**, **Air temperature**, **Heater mode** (Off / Auto idle / Heating / …), **Heater cooldown** (live 1 Hz countdown), **Filter pump power** (W)                          |
+| `sensor` (salt) | **Chlorine actual** (%), **Salt** (ppm), **Salt cell temperature**, **Salt cell hours**, **Boost remaining** (s), **Salt cell model**, **Salt cell firmware**                              |
+| `switch`        | **Filter pump** (manual override, preserves the schedule bit), **Daily schedule** (enable/disable the recurring schedule, preserves the pump on/off bit)                                   |
+| `time`          | **Daily schedule start**, **Daily schedule stop** (stored as UTC seconds-of-day on the controller, displayed in your Home Assistant timezone)                                              |
 
 ### Notable behaviors
 
@@ -37,8 +37,8 @@ The integration is configured per Pentair account and surfaces one Home Assistan
 
 ## Service actions
 
-| Service                  | Description                                                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Service                    | Description                                                                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `pentair_pool.reload_data` | Forces an immediate REST poll of the Pentair Cloud for every configured account. Useful after changing settings at the panel. |
 
 The WebSocket push is the primary update path; a 60 s REST fallback poll runs in the background to catch any missed pushes.

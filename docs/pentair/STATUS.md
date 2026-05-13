@@ -4,7 +4,7 @@ Snapshot of where things are so any session in the future can pick up cleanly. L
 
 ## 1. What this is
 
-A Home Assistant custom integration that talks to Pentair Cloud (the service behind the *Pentair Home* mobile app). Reverse-engineered from `com.pentair.pentairhome v4.2.18`. Currently tested against one IntelliConnect (`deviceType=PIF0`) with a single-speed filter pump, a heater, and an IntelliChlor salt cell.
+A Home Assistant custom integration that talks to Pentair Cloud (the service behind the _Pentair Home_ mobile app). Reverse-engineered from `com.pentair.pentairhome v4.2.18`. Currently tested against one IntelliConnect (`deviceType=PIF0`) with a single-speed filter pump, a heater, and an IntelliChlor salt cell.
 
 Reverse-engineering artifacts (mitmproxy captures, Frida hooks, decompiled APK, the full Pentair Cloud API reference) live in a separate research workspace outside this integration's repo, and are not required to build or run this integration. This document focuses on the integration's state, not the API itself.
 
@@ -14,31 +14,31 @@ Reverse-engineering artifacts (mitmproxy captures, Frida hooks, decompiled APK, 
 
 Confirmed end-to-end on a live HA instance:
 
-| Entity | Source field(s) | Read | Write |
-| --- | --- | --- | --- |
-| `switch.<dev>_filter_pump` | `ra4` (read), `ra0` (write) | ✅ physical state | ✅ override on/off |
-| `switch.<dev>_daily_schedule` | `ra0` | ✅ | ✅ enable/disable |
-| `climate.<dev>_heater` | `htd1`, `htd2`, `htd13` | ✅ | ✅ HVAC OFF/HEAT + setpoint (tenths of °F) |
-| `number.<dev>_chlorine_output` | `icd1` | ✅ | ✅ 0–100 % slider |
-| `time.<dev>_daily_schedule_start` | `ra1` (UTC seconds → local) | ✅ | ✅ |
-| `time.<dev>_daily_schedule_end` | `ra2` (UTC seconds → local) | ✅ | ✅ |
-| `sensor.<dev>_filter_pump_power` | `ra4` | ✅ W | — |
-| `sensor.<dev>_chlorine_output_actual` | `ics1` | ✅ % | — |
-| `sensor.<dev>_salt_level` | `ics2` | ✅ ppm | — |
-| `sensor.<dev>_salt_cell_water_temperature` | `ics9` | ✅ °F | — |
-| `sensor.<dev>_boost_remaining` | `ics13` | ✅ s | — |
-| `sensor.<dev>_salt_cell_lifetime_hours` | `ics15` | ✅ h | — |
-| `sensor.<dev>_heater_cooldown` | `htd14` | ✅ s (likely config, not live) | — |
-| `sensor.<dev>_salt_cell_firmware` | `ics11` | ✅ string | — |
-| `sensor.<dev>_salt_cell_model` | `ics12` | ✅ string | — |
-| `binary_sensor.<dev>_online` | top-level `online` | ✅ | — |
-| `binary_sensor.<dev>_alarm` | top-level `alarm` | ✅ | — |
+| Entity                                     | Source field(s)             | Read                           | Write                                      |
+| ------------------------------------------ | --------------------------- | ------------------------------ | ------------------------------------------ |
+| `switch.<dev>_filter_pump`                 | `ra4` (read), `ra0` (write) | ✅ physical state              | ✅ override on/off                         |
+| `switch.<dev>_daily_schedule`              | `ra0`                       | ✅                             | ✅ enable/disable                          |
+| `climate.<dev>_heater`                     | `htd1`, `htd2`, `htd13`     | ✅                             | ✅ HVAC OFF/HEAT + setpoint (tenths of °F) |
+| `number.<dev>_chlorine_output`             | `icd1`                      | ✅                             | ✅ 0–100 % slider                          |
+| `time.<dev>_daily_schedule_start`          | `ra1` (UTC seconds → local) | ✅                             | ✅                                         |
+| `time.<dev>_daily_schedule_end`            | `ra2` (UTC seconds → local) | ✅                             | ✅                                         |
+| `sensor.<dev>_filter_pump_power`           | `ra4`                       | ✅ W                           | —                                          |
+| `sensor.<dev>_chlorine_output_actual`      | `ics1`                      | ✅ %                           | —                                          |
+| `sensor.<dev>_salt_level`                  | `ics2`                      | ✅ ppm                         | —                                          |
+| `sensor.<dev>_salt_cell_water_temperature` | `ics9`                      | ✅ °F                          | —                                          |
+| `sensor.<dev>_boost_remaining`             | `ics13`                     | ✅ s                           | —                                          |
+| `sensor.<dev>_salt_cell_lifetime_hours`    | `ics15`                     | ✅ h                           | —                                          |
+| `sensor.<dev>_heater_cooldown`             | `htd14`                     | ✅ s (likely config, not live) | —                                          |
+| `sensor.<dev>_salt_cell_firmware`          | `ics11`                     | ✅ string                      | —                                          |
+| `sensor.<dev>_salt_cell_model`             | `ics12`                     | ✅ string                      | —                                          |
+| `binary_sensor.<dev>_online`               | top-level `online`          | ✅                             | —                                          |
+| `binary_sensor.<dev>_alarm`                | top-level `alarm`           | ✅                             | —                                          |
 
 Round-trip write verified for: filter pump on/off, Daily Schedule on/off, chlorine setpoint up/down, heater HVAC mode + setpoint, schedule start/end time edits.
 
 ### Known issues / pending
 
-1. **Cooldown indicator not yet identified.** When the heater shuts down it keeps the pump running for `htd14` seconds. The pump switch already correctly stays ON during cooldown (because `is_on` reads `ra4`, the physical power draw). What's missing is a *why* indicator — a separate `binary_sensor.cooldown_active` or attribute on the pump switch — telling the user "pump is locked due to cooldown."
+1. **Cooldown indicator not yet identified.** When the heater shuts down it keeps the pump running for `htd14` seconds. The pump switch already correctly stays ON during cooldown (because `is_on` reads `ra4`, the physical power draw). What's missing is a _why_ indicator — a separate `binary_sensor.cooldown_active` or attribute on the pump switch — telling the user "pump is locked due to cooldown."
    - The cooldown capture script (`script/_cooldown_capture.py`) ran but didn't isolate the live-countdown field because the test conditions weren't right (heater wasn't actively heating at start; Daily Schedule was masking the cooldown effect anyway).
    - **Next try:** set climate mode to OFF while heater is actively heating (`htd1 == "1"`), watch the WS feed for a field whose value ticks down. Likely an `hts*` (heater status) field we haven't surfaced.
 
@@ -97,6 +97,7 @@ The driver reads the user's stored refresh token from `config/.storage/auth` and
 3. `./script/pentair_test states` + `errors` — verify.
 
 When the integration's entity definitions change (`description.key`, `_attr_name`, new entities), HA caches some attributes (`original_name`) in `config/.storage/core.entity_registry` from first registration. To force a fresh registration after a rename, either:
+
 - Bump the `description.key` (creates new entity with new unique_id; old becomes orphaned),
 - Or patch the registry directly: `python3 -c "..."` editing `original_name` in `core.entity_registry` then restart (see `docs/pentair/CHANGELOG.md` for the exact pattern used to flip "end" → "stop").
 
@@ -165,21 +166,21 @@ Entities **never** call the client directly — always through `coordinator.asyn
 }
 ```
 
-WebSocket `device_data` pushes carry *deltas* — only fields whose value changed are included. The coordinator merges these into `fields[code]` and calls `async_set_updated_data()`, which fans out to every listening entity.
+WebSocket `device_data` pushes carry _deltas_ — only fields whose value changed are included. The coordinator merges these into `fields[code]` and calls `async_set_updated_data()`, which fans out to every listening entity.
 
 ### Pump on/off semantics — why is_on reads ra4
 
 The pump's state machine uses a single `ra0` field that combines "Daily Schedule enabled" with "manual override on/off":
 
-| `ra0` | Schedule | Override | What the pump actually does |
-| --- | --- | --- | --- |
-| `"0"` | disabled | off | pump off |
-| `"1"` | disabled | on | pump on (manual) |
-| `"2"` | enabled | off | pump on **if currently inside schedule window**, else off |
-| `"3"` | enabled | on | pump on (manual override) |
-| `"4"` | enabled | (timer just expired) | pump off (post-schedule) |
+| `ra0` | Schedule | Override             | What the pump actually does                               |
+| ----- | -------- | -------------------- | --------------------------------------------------------- |
+| `"0"` | disabled | off                  | pump off                                                  |
+| `"1"` | disabled | on                   | pump on (manual)                                          |
+| `"2"` | enabled  | off                  | pump on **if currently inside schedule window**, else off |
+| `"3"` | enabled  | on                   | pump on (manual override)                                 |
+| `"4"` | enabled  | (timer just expired) | pump off (post-schedule)                                  |
 
-So `ra0` is the user's *intent*, not physical state. A common real-world state is `ra0="2"` with the pump running because the Daily Schedule is firing. If the switch's `is_on` is computed from `ra0` alone, the switch shows OFF while the pump is on — confusing, and toggling it sends `ra0="2"` (a no-op) while the pump keeps running.
+So `ra0` is the user's _intent_, not physical state. A common real-world state is `ra0="2"` with the pump running because the Daily Schedule is firing. If the switch's `is_on` is computed from `ra0` alone, the switch shows OFF while the pump is on — confusing, and toggling it sends `ra0="2"` (a no-op) while the pump keeps running.
 
 **Fix shipped:** `switch.filter_pump.is_on = (ra4 > 0)`. Reads physical truth. Writing still goes to `ra0` (intent). This also handles the heater-cooldown case transparently: during cooldown the firmware refuses to stop the pump, `ra4` stays > 0, switch stays ON — accurate.
 
