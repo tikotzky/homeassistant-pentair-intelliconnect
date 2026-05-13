@@ -29,7 +29,7 @@ If not provided, ask for:
 ### 2. Platform `__init__.py` Template
 
 ```python
-"""[Platform] platform for Pentair Pool."""
+"""[Platform] platform for Pentair IntelliConnect."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ async def async_setup_entry(
 ### 3. Entity Implementation Template
 
 ```python
-"""[Entity description] for Pentair Pool."""
+"""[Entity description] for Pentair IntelliConnect."""
 
 from __future__ import annotations
 

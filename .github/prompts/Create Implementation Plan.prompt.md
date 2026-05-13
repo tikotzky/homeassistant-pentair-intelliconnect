@@ -130,7 +130,7 @@ Break down into logical phases (typically 3-5):
 **Integration-specific considerations:**
 
 - Domain: `pentair_pool`
-- Title: Pentair Pool
+- Title: Pentair IntelliConnect
 - Class prefix: `PentairPool`
 - Follow patterns in `AGENTS.md` and path-specific `.instructions.md`
 

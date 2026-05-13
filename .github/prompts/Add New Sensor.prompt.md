@@ -48,7 +48,7 @@ If not provided, ask for:
 **Entity Template:**
 
 ```python
-"""[Sensor description] for Pentair Pool."""
+"""[Sensor description] for Pentair IntelliConnect."""
 
 from __future__ import annotations
 

@@ -7,7 +7,7 @@
 ## Project Identity
 
 - **Domain:** `pentair_pool`
-- **Title:** Pentair Pool
+- **Title:** Pentair IntelliConnect
 - **Class prefix:** `PentairPool`
 - **Main code:** `custom_components/pentair_pool/`
 - **Validate:** `script/check` (type-check + lint-check + spell-check)

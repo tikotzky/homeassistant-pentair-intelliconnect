@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the technical architecture of the Pentair Pool custom component for Home Assistant.
+This document describes the technical architecture of the Pentair IntelliConnect custom component for Home Assistant.
 
 ## Directory Structure
 

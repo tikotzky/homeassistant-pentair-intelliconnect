@@ -1,6 +1,6 @@
-# Getting Started with Pentair Pool
+# Getting Started with Pentair IntelliConnect
 
-This guide will help you install and set up the Pentair Pool custom integration for Home Assistant.
+This guide will help you install and set up the Pentair IntelliConnect custom integration for Home Assistant.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ This guide will help you install and set up the Pentair Pool custom integration 
 5. Add this repository URL: `https://github.com/tikotzky/homeassistant-pentair-pool`
 6. Set category to "Integration"
 7. Click "Add"
-8. Find "Pentair Pool" in the integration list
+8. Find "Pentair IntelliConnect" in the integration list
 9. Click "Download"
 10. Restart Home Assistant
 
@@ -36,7 +36,7 @@ After installation, add the integration:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **+ Add Integration**
-3. Search for "Pentair Pool"
+3. Search for "Pentair IntelliConnect"
 4. Follow the configuration steps:
 
 ### Step 1: Connection Information
@@ -99,13 +99,13 @@ Add entities to your dashboard:
 1. Go to your dashboard
 2. Click **Edit Dashboard** → **Add Card**
 3. Choose card type (e.g., "Entities", "Glance")
-4. Select entities from "Pentair Pool"
+4. Select entities from "Pentair IntelliConnect"
 
 Example entities card:
 
 ```yaml
 type: entities
-title: Pentair Pool
+title: Pentair IntelliConnect
 entities:
   - sensor.device_name_sensor
   - binary_sensor.device_name_connectivity

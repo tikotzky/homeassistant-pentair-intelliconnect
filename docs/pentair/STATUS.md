@@ -1,4 +1,4 @@
-# Pentair Pool integration — project status
+# Pentair IntelliConnect integration — project status
 
 Snapshot of where things are so any session in the future can pick up cleanly. Last updated 2026-05-12.
 

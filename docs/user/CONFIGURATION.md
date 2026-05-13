@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This document describes all configuration options and settings available in the Pentair Pool custom integration.
+This document describes all configuration options and settings available in the Pentair IntelliConnect custom integration.
 
 ## Integration Configuration
 
@@ -31,7 +31,7 @@ These options are configured during initial setup via the Home Assistant UI.
 After initial setup, you can modify settings:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find "Pentair Pool"
+2. Find "Pentair IntelliConnect"
 3. Click **Configure**
 4. Modify settings
 5. Click **Submit**
@@ -135,7 +135,7 @@ You can add multiple instances of this integration for different devices:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **+ Add Integration**
-3. Search for "Pentair Pool"
+3. Search for "Pentair IntelliConnect"
 4. Configure with different connection details
 
 Each instance creates separate entities with unique entity IDs.
@@ -168,7 +168,7 @@ Adjust based on your needs:
 The integration provides diagnostic data for troubleshooting:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find "Pentair Pool"
+2. Find "Pentair IntelliConnect"
 3. Click on the device
 4. Click **Download Diagnostics**
 
@@ -190,7 +190,7 @@ The integration works with Home Assistant Blueprints for reusable automations:
 
 ```yaml
 blueprint:
-  name: Pentair Pool Alert
+  name: Pentair IntelliConnect Alert
   description: Send notification when sensor exceeds threshold
   domain: automation
   input:

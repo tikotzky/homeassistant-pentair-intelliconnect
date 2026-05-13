@@ -17,7 +17,7 @@ This schema combines Home Assistant's official manifest requirements with HACS-s
 ```json
 {
   "domain": "pentair_pool",
-  "name": "Pentair Pool",
+  "name": "Pentair IntelliConnect",
   "codeowners": ["@tikotzky"],
   "config_flow": true,
   "documentation": "https://github.com/tikotzky/homeassistant-pentair-pool",

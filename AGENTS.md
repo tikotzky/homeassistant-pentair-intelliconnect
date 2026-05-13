@@ -9,7 +9,7 @@ This is a Home Assistant custom integration that was generated from a blueprint 
 **Integration details:**
 
 - **Domain:** `pentair_pool`
-- **Title:** Pentair Pool
+- **Title:** Pentair IntelliConnect
 - **Repository:** tikotzky/homeassistant-pentair-pool
 
 **Key directories:**
@@ -188,14 +188,14 @@ As an AI agent, **aim for Silver or Gold Quality Scale** when generating code:
 This integration uses the following identifiers consistently:
 
 - **Domain:** `pentair_pool`
-- **Title:** Pentair Pool
+- **Title:** Pentair IntelliConnect
 - **Class prefix:** `PentairPool`
 
 **When creating new files:**
 
 - Use the domain `pentair_pool` for all DOMAIN references
 - Prefix all integration-specific classes with `PentairPool`
-- Use "Pentair Pool" as the display title
+- Use "Pentair IntelliConnect" as the display title
 - Never hardcode different values
 
 ### Integration Structure

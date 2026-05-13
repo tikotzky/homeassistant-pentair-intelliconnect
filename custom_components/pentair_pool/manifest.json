@@ -1,6 +1,6 @@
 {
   "domain": "pentair_pool",
-  "name": "Pentair Pool",
+  "name": "Pentair IntelliConnect",
   "codeowners": [
     "@tikotzky"
   ],
@@ -12,5 +12,5 @@
   "requirements": [
     "pycognito>=2024.5.1"
   ],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

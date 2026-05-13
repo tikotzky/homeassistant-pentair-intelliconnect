@@ -1,6 +1,6 @@
 # GitHub Codespaces Development Guide
 
-Pentair Pool is fully compatible with GitHub Codespaces for cloud-based development.
+Pentair IntelliConnect is fully compatible with GitHub Codespaces for cloud-based development.
 
 ## Quick Start
 

@@ -40,8 +40,8 @@ def create_device_info(
     """
     return DeviceInfo(
         identifiers={(config_entry.domain, config_entry.entry_id)},
-        name=name or "Pentair Pool",
-        manufacturer=manufacturer or "Pentair Pool",
+        name=name or "Pentair IntelliConnect",
+        manufacturer=manufacturer or "Pentair IntelliConnect",
         model=model or "Unknown",
         sw_version=sw_version,
     )

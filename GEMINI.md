@@ -14,7 +14,7 @@ Read `AGENTS.md` completely before starting any work. It contains:
 ## Quick Reference
 
 - **Domain:** `pentair_pool`
-- **Title:** Pentair Pool
+- **Title:** Pentair IntelliConnect
 - **Class prefix:** `PentairPool`
 - **Main code:** `custom_components/pentair_pool/`
 - **Validate:** `script/check` (type-check + lint + spell)

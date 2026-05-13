@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icons/logo.png" alt="Pentair Pool" width="200" />
+  <img src="icons/logo.png" alt="Pentair IntelliConnect" width="200" />
 </p>
 
-# Pentair Pool
+# Pentair IntelliConnect
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
@@ -102,7 +102,7 @@ That's it! The integration will start loading your data.
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **"+ Add Integration"**
-3. Search for "Pentair Pool"
+3. Search for "Pentair IntelliConnect"
 4. Follow the same setup steps as Option 1
 
 ### Step 3: Adjust Settings (Optional)
@@ -110,7 +110,7 @@ That's it! The integration will start loading your data.
 After setup, you can adjust options:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find **Pentair Pool**
+2. Find **Pentair IntelliConnect**
 3. Click **Configure** to adjust:
    - Update interval (how often to refresh data)
    - Enable debug logging
@@ -129,7 +129,7 @@ The integration creates several entities for your air purifier:
 - **Button**: Reset filter timer
 - **Fan**: Air purifier fan control
 
-Find all entities in **Settings** → **Devices & Services** → **Pentair Pool** → click on the device.
+Find all entities in **Settings** → **Devices & Services** → **Pentair IntelliConnect** → click on the device.
 
 ## Available Entities
 
@@ -252,7 +252,7 @@ The integration will automatically resume normal operation with the new credenti
 You can also update credentials at any time without waiting for an error:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find **Pentair Pool**
+2. Find **Pentair IntelliConnect**
 3. Click the **3 dots menu** → **Reconfigure**
 4. Enter new username/password
 5. Click Submit
@@ -296,7 +296,7 @@ If your device is not responding:
 1. Check the **API Connection** binary sensor - it should be "On"
 2. Check your network connection
 3. Verify the device is powered on
-4. Check the integration diagnostics (Settings → Devices & Services → Pentair Pool → 3 dots → Download diagnostics)
+4. Check the integration diagnostics (Settings → Devices & Services → Pentair IntelliConnect → 3 dots → Download diagnostics)
 
 ## 🤝 Contributing
 

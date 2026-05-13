@@ -166,7 +166,7 @@ This allows translating the option labels via `selector.[translation_key].option
 Create `custom_components/pentair_pool/service_actions/[action_name].py`:
 
 ```python
-"""[Action name] service action for Pentair Pool."""
+"""[Action name] service action for Pentair IntelliConnect."""
 
 from __future__ import annotations
 
