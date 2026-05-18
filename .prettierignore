@@ -2,7 +2,7 @@
 config/
 !config/configuration.yaml
 custom_components/
-!custom_components/pentair_pool/
+!custom_components/ha_integration_domain/
 
 # Ignore-style files (no recognized extension — Prettier would misparse them)
 *ignore
