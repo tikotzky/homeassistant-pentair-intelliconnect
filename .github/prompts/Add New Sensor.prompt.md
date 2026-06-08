@@ -20,8 +20,8 @@ If not provided, ask for:
 
 **Entity Implementation:**
 
-- Create new sensor file in `custom_components/pentair_pool/sensor/`
-- Inherit from `PentairPoolEntity` and `SensorEntity`
+- Create new sensor file in `custom_components/ha_integration_domain/sensor/`
+- Inherit from `IntegrationBlueprintEntity` and `SensorEntity`
 - Use `SensorEntityDescription` for static metadata
 - Implement `native_value` property to return sensor value from coordinator data
 - Add proper type hints for all methods and properties
@@ -48,7 +48,7 @@ If not provided, ask for:
 **Entity Template:**
 
 ```python
-"""[Sensor description] for Pentair IntelliConnect."""
+"""[Sensor description] for Integration Blueprint."""
 
 from __future__ import annotations
 
@@ -62,12 +62,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import [UNIT_CONSTANT]  # e.g., PERCENTAGE, UnitOfTemperature
 from homeassistant.core import callback
 
-from ..coordinator import PentairPoolDataUpdateCoordinator
-from ..entity import PentairPoolEntity
+from ..coordinator import IntegrationBlueprintDataUpdateCoordinator
+from ..entity import IntegrationBlueprintEntity
 
 
-class PentairPool[SensorName]Sensor(
-    PentairPoolEntity,
+class IntegrationBlueprint[SensorName]Sensor(
+    IntegrationBlueprintEntity,
     SensorEntity,
 ):
     """Sensor for [description]."""
@@ -85,7 +85,7 @@ class PentairPool[SensorName]Sensor(
 
     def __init__(
         self,
-        coordinator: PentairPoolDataUpdateCoordinator,
+        coordinator: IntegrationBlueprintDataUpdateCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
@@ -151,9 +151,9 @@ async def async_setup_entry(
 
 **Related Files:**
 
-- Entity: `custom_components/pentair_pool/sensor/[sensor_name].py`
-- Platform: `custom_components/pentair_pool/sensor/__init__.py`
-- Translations: `custom_components/pentair_pool/translations/*.json`
+- Entity: `custom_components/ha_integration_domain/sensor/[sensor_name].py`
+- Platform: `custom_components/ha_integration_domain/sensor/__init__.py`
+- Translations: `custom_components/ha_integration_domain/translations/*.json`
 - Documentation: Reference [#file:docs/development/ARCHITECTURE.md]
 
 **DO NOT create tests unless explicitly requested.**

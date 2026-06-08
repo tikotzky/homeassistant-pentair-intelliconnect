@@ -4,7 +4,7 @@ applyTo: "**/manifest.json"
 
 # Manifest Instructions
 
-**Applies to:** `custom_components/pentair_pool/manifest.json`
+**Applies to:** `custom_components/ha_integration_domain/manifest.json`
 
 ## Schema Validation
 
@@ -16,14 +16,14 @@ This schema combines Home Assistant's official manifest requirements with HACS-s
 
 ```json
 {
-  "domain": "pentair_pool",
-  "name": "Pentair IntelliConnect",
-  "codeowners": ["@tikotzky"],
+  "domain": "ha_integration_domain",
+  "name": "Integration Blueprint",
+  "codeowners": ["@jpawlowski"],
   "config_flow": true,
-  "documentation": "https://github.com/tikotzky/homeassistant-pentair-pool",
+  "documentation": "https://github.com/jpawlowski/hacs.integration_blueprint",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/tikotzky/homeassistant-pentair-pool/issues",
+  "issue_tracker": "https://github.com/jpawlowski/hacs.integration_blueprint/issues",
   "requirements": [],
   "version": "0.0.0"
 }
@@ -82,7 +82,7 @@ GitHub usernames with `@` prefix:
 
 ```json
 "codeowners": [
-  "@tikotzky"
+  "@jpawlowski"
 ]
 ```
 
