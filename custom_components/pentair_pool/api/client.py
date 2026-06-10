@@ -442,8 +442,17 @@ class PentairPoolWebSocket:
         """Signal stop and wait for the background task to finish."""
         self._stop.set()
         if self._task is not None:
+            # Setting the event alone is not enough: while connected, the run
+            # loop is parked in `async for msg in ws` and never re-checks
+            # `_stop`. Cancel so the task unwinds promptly -- the reconnect
+            # loop re-raises CancelledError and `async with ws_connect` closes
+            # the socket on the way out. Without this, stop() blocks until the
+            # server happens to drop the connection, which hangs unload and
+            # leaves the config entry stuck on the Integrations page.
+            self._task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
+            self._task = None
 
     async def _run_forever(self) -> None:
         """Reconnect loop with exponential backoff (capped at 30s)."""
