@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1](https://github.com/tikotzky/homeassistant-pentair-intelliconnect/compare/v0.3.0...v0.3.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **api:** cancel WS task in stop() so unload doesn't hang ([0e18997](https://github.com/tikotzky/homeassistant-pentair-intelliconnect/commit/0e18997628b4e97d118751e18c1710e4e16f594c))
+* **devcontainer:** use comma-separated apt-packages string for Zed ([ec07f10](https://github.com/tikotzky/homeassistant-pentair-intelliconnect/commit/ec07f10e73072469987955ad70aca43f125f0ed2))
+
 ## [0.3.0] - 2026-05-13
 
 ### Changed
