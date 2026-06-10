@@ -51,34 +51,7 @@
       "version": "latest"
     },
     "ghcr.io/devcontainers-extra/features/apt-packages:1": {
-      "packages": [
-        "autoconf",
-        "automake",
-        "bat",
-        "eza",
-        "fd-find",
-        "ffmpeg",
-        "fzf",
-        "git-delta",
-        "httpie",
-        "hyperfine",
-        "ipython3",
-        "jo",
-        "jq",
-        "libpcap-dev",
-        "libssl-dev",
-        "libtool",
-        "libturbojpeg0",
-        "miller",
-        "moreutils",
-        "pipx",
-        "ripgrep",
-        "shellcheck",
-        "shfmt",
-        "sqlite3",
-        "tree",
-        "yamllint"
-      ]
+      "packages": "autoconf,automake,bat,eza,fd-find,ffmpeg,fzf,git-delta,httpie,hyperfine,ipython3,jo,jq,libpcap-dev,libssl-dev,libtool,libturbojpeg0,miller,moreutils,pipx,ripgrep,shellcheck,shfmt,sqlite3,tree,yamllint"
     }
   },
   "forwardPorts": [8123],
