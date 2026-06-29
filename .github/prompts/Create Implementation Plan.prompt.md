@@ -129,9 +129,9 @@ Break down into logical phases (typically 3-5):
 
 **Integration-specific considerations:**
 
-- Domain: `pentair_pool`
-- Title: Pentair IntelliConnect
-- Class prefix: `PentairPool`
+- Domain: `{domain}`
+- Title: (your integration title)
+- Class prefix: `{ClassPrefix}`
 - Follow patterns in `AGENTS.md` and path-specific `.instructions.md`
 
 ## Example Phase Structure
@@ -141,8 +141,8 @@ Break down into logical phases (typically 3-5):
 
 **Files to modify:**
 
-- `custom_components/pentair_pool/sensor/__init__.py`
-- `custom_components/pentair_pool/sensor/new_sensor.py` (create)
+- `custom_components/{domain}/sensor/__init__.py`
+- `custom_components/{domain}/sensor/new_sensor.py` (create)
 
 **Changes:**
 
