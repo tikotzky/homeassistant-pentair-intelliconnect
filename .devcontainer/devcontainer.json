@@ -19,6 +19,7 @@
   // Runs on every container creation — installs all dependencies.
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   // Runs on every client attach — detects fresh blueprints and triggers initialization.
+  "postAttachCommand": "bash .devcontainer/post-attach.sh",
   "containerEnv": {
     // Python runtime variables — must be set for ALL Python processes, including those spawned
     // by VS Code extensions (Pylance, test runner, Ruff) that never go through our shell scripts.
@@ -43,7 +44,7 @@
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.14"
     },
-    "ghcr.io/devcontainers/features/node:2": {
+    "ghcr.io/devcontainers/features/node:": {
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -51,7 +52,34 @@
       "version": "latest"
     },
     "ghcr.io/devcontainers-extra/features/apt-packages:1": {
-      "packages": "autoconf,automake,bat,eza,fd-find,ffmpeg,fzf,git-delta,httpie,hyperfine,ipython3,jo,jq,libpcap-dev,libssl-dev,libtool,libturbojpeg0,miller,moreutils,pipx,ripgrep,shellcheck,shfmt,sqlite3,tree,yamllint"
+      "packages": [
+        "autoconf",
+        "automake",
+        "bat",
+        "eza",
+        "fd-find",
+        "ffmpeg",
+        "fzf",
+        "git-delta",
+        "httpie",
+        "hyperfine",
+        "ipython3",
+        "jo",
+        "jq",
+        "libpcap-dev",
+        "libssl-dev",
+        "libtool",
+        "libturbojpeg0",
+        "miller",
+        "moreutils",
+        "pipx",
+        "ripgrep",
+        "shellcheck",
+        "shfmt",
+        "sqlite3",
+        "tree",
+        "yamllint"
+      ]
     }
   },
   "forwardPorts": [8123],
