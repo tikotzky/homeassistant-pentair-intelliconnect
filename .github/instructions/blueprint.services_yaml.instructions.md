@@ -110,7 +110,7 @@ turn_on:
 
 ## Related Files
 
-Service action implementations are in `custom_components/pentair_pool/service_actions/`.
+Service action implementations are in `custom_components/<your_domain>/service_actions/`.
 
 ## Validation
 

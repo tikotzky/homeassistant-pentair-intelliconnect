@@ -94,8 +94,8 @@ Create a new ADR in `docs/development/adr/NNNN-title-of-decision.md`:
 
 **Files affected:**
 
-- `custom_components/pentair_pool/[file1.py]`
-- `custom_components/pentair_pool/[file2.py]`
+- `custom_components/{domain}/[file1.py]`
+- `custom_components/{domain}/[file2.py]`
 
 **Code pattern to follow:**
 
@@ -222,8 +222,8 @@ Create a new ADR in `docs/development/adr/NNNN-title-of-decision.md`:
 
 ## Integration Context
 
-- **Domain:** `pentair_pool`
-- **Class prefix:** `PentairPool`
+- **Domain:** `{domain}`
+- **Class prefix:** `{ClassPrefix}`
 - **Architecture docs:** `docs/development/ARCHITECTURE.md`
 - **Decisions log:** `docs/development/DECISIONS.md`
 
